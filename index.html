@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Room Monitor — Live Environment</title>
+  <title>Room Monitor — Smart Analytics</title>
 
-  <!-- Fonts: Rajdhani (display) + DM Mono (data) + Outfit (body) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <style>
@@ -25,25 +23,33 @@
       --border:         rgba(255, 255, 255, 0.07);
       --border-active:  rgba(255, 255, 255, 0.14);
 
-      /* Temperature accent */
       --temp-base:      #ff6b35;
       --temp-mid:       #ff9a3c;
       --temp-glow:      rgba(255, 107, 53, 0.35);
       --temp-glow-soft: rgba(255, 107, 53, 0.10);
 
-      /* Humidity accent */
       --hum-base:       #00c6ff;
       --hum-mid:        #0072ff;
       --hum-glow:       rgba(0, 198, 255, 0.35);
       --hum-glow-soft:  rgba(0, 198, 255, 0.10);
 
-      /* Neutral text */
+      --env-base:       #22d3a5;
+      --env-mid:        #0fa86e;
+      --env-glow:       rgba(34, 211, 165, 0.30);
+      --env-glow-soft:  rgba(34, 211, 165, 0.08);
+
+      --aqi-good:       #22d3a5;
+      --aqi-moderate:   #f59e0b;
+      --aqi-poor:       #ff6b35;
+      --aqi-bad:        #ef4444;
+
       --text-primary:   #eef2ff;
       --text-secondary: #8892aa;
       --text-muted:     #4a5568;
 
-      /* Live indicator */
       --live-green:     #22d3a5;
+      --accent-purple:  #8b5cf6;
+      --accent-blue:    #3b82f6;
 
       --radius-card:    22px;
       --radius-inner:   12px;
@@ -54,7 +60,6 @@
        RESET & BASE
     ───────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html { scroll-behavior: smooth; }
 
     body {
@@ -66,7 +71,6 @@
       position: relative;
     }
 
-    /* ── Noise texture overlay ── */
     body::before {
       content: '';
       position: fixed;
@@ -77,7 +81,6 @@
       opacity: 0.6;
     }
 
-    /* ── Radial ambient light ── */
     body::after {
       content: '';
       position: fixed;
@@ -94,23 +97,19 @@
       z-index: 0;
     }
 
-    /* ── Grid scanlines ── */
     .scanlines {
       position: fixed;
       inset: 0;
       background-image: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.06) 2px,
-        rgba(0,0,0,0.06) 4px
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px
       );
       pointer-events: none;
       z-index: 0;
     }
 
     /* ─────────────────────────────────────────────
-       LAYOUT WRAPPER
+       LAYOUT
     ───────────────────────────────────────────── */
     .wrapper {
       position: relative;
@@ -118,6 +117,85 @@
       max-width: 1280px;
       margin: 0 auto;
       padding: 0 clamp(16px, 4vw, 40px);
+    }
+
+    /* ─────────────────────────────────────────────
+       LOADING OVERLAY
+    ───────────────────────────────────────────── */
+    #loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-base);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    #loading-overlay.hidden { opacity: 0; visibility: hidden; }
+
+    .loader-spinner {
+      width: 48px; height: 48px;
+      border: 2px solid var(--border);
+      border-top-color: var(--temp-base);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    .loader-sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      animation: blink 1.2s step-end infinite;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ─────────────────────────────────────────────
+       REFRESH BAR
+    ───────────────────────────────────────────── */
+    .refresh-bar-wrap {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      z-index: 500;
+    }
+    .refresh-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--hum-base), var(--temp-base));
+      width: 0%;
+      transition: width 0.15s linear;
+    }
+
+    /* ─────────────────────────────────────────────
+       FADE-IN ANIMATION
+    ───────────────────────────────────────────── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(16px);
+      animation: fadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .fade-in:nth-child(1) { animation-delay: 0.05s; }
+    .fade-in:nth-child(2) { animation-delay: 0.12s; }
+    .fade-in:nth-child(3) { animation-delay: 0.18s; }
+    .fade-in:nth-child(4) { animation-delay: 0.24s; }
+    .fade-in:nth-child(5) { animation-delay: 0.30s; }
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
     }
 
     /* ─────────────────────────────────────────────
@@ -140,8 +218,7 @@
     }
 
     .brand-icon {
-      width: 44px;
-      height: 44px;
+      width: 44px; height: 44px;
       border-radius: 12px;
       background: linear-gradient(135deg, #1e3a5f 0%, #0d1f3c 100%);
       border: 1px solid var(--border-active);
@@ -181,7 +258,6 @@
       flex-wrap: wrap;
     }
 
-    /* Buzzer Button */
     .buzzer-btn {
       display: inline-flex;
       align-items: center;
@@ -211,7 +287,6 @@
       box-shadow: 0 0 15px rgba(255, 107, 53, 0.2);
     }
 
-    /* Live status badge */
     .live-badge {
       display: flex;
       align-items: center;
@@ -228,8 +303,7 @@
     }
 
     .live-dot {
-      width: 8px;
-      height: 8px;
+      width: 8px; height: 8px;
       border-radius: 50%;
       background: var(--live-green);
       animation: pulse-dot 2s ease-in-out infinite;
@@ -241,12 +315,90 @@
       50%       { opacity: 0.5; transform: scale(0.7); }
     }
 
-    /* Last updated timestamp */
     .last-updated {
       font-family: 'DM Mono', monospace;
       font-size: 11px;
       color: var(--text-muted);
       letter-spacing: 0.06em;
+    }
+
+    /* ─────────────────────────────────────────────
+       ERROR BANNER
+    ───────────────────────────────────────────── */
+    #error-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: var(--radius-inner);
+      padding: 10px 16px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #fca5a5;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.05em;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #error-banner.visible { opacity: 1; pointer-events: auto; }
+
+    /* ─────────────────────────────────────────────
+       TAB NAVIGATION
+    ───────────────────────────────────────────── */
+    .tab-nav {
+      display: flex;
+      gap: 6px;
+      margin-top: 28px;
+      padding: 5px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      width: fit-content;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      border-radius: 40px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover { color: var(--text-primary); }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(59,130,246,0.22) 0%, rgba(139,92,246,0.18) 100%);
+      color: var(--text-primary);
+      border: 1px solid rgba(59,130,246,0.25);
+      box-shadow: 0 2px 12px rgba(59,130,246,0.15);
+    }
+
+    /* ─────────────────────────────────────────────
+       TAB PANELS
+    ───────────────────────────────────────────── */
+    .tab-panel {
+      display: none;
+      animation: tabFadeIn 0.35s ease forwards;
+    }
+    .tab-panel.active { display: block; }
+
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     /* ─────────────────────────────────────────────
@@ -263,11 +415,9 @@
     }
 
     /* ─────────────────────────────────────────────
-       MAIN — HERO CARDS
+       HERO CARDS (LIVE TAB)
     ───────────────────────────────────────────── */
-    .hero-section {
-      margin-top: clamp(24px, 4vw, 44px);
-    }
+    .hero-section { margin-top: clamp(24px, 4vw, 44px); }
 
     .cards-grid {
       display: grid;
@@ -275,7 +425,6 @@
       gap: clamp(14px, 2.5vw, 24px);
     }
 
-    /* ── Glass card base ── */
     .metric-card {
       background: var(--bg-card);
       backdrop-filter: blur(24px) saturate(160%);
@@ -297,13 +446,10 @@
       border-color: var(--border-active);
     }
 
-    /* ── Card: corner accent bar ── */
     .metric-card::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       height: 2px;
       border-radius: var(--radius-card) var(--radius-card) 0 0;
     }
@@ -311,14 +457,11 @@
     .card-temp::before   { background: linear-gradient(90deg, var(--temp-base), var(--temp-mid), transparent); }
     .card-humid::before  { background: linear-gradient(90deg, var(--hum-base), var(--hum-mid), transparent); }
 
-    /* ── Card inner glow bg ── */
     .metric-card::after {
       content: '';
       position: absolute;
-      top: -30%;
-      right: -10%;
-      width: 60%;
-      height: 80%;
+      top: -30%; right: -10%;
+      width: 60%; height: 80%;
       border-radius: 50%;
       filter: blur(60px);
       opacity: 0.5;
@@ -331,7 +474,6 @@
     .metric-card:hover.card-temp  { box-shadow: var(--shadow-card), 0 0 60px var(--temp-glow); }
     .metric-card:hover.card-humid { box-shadow: var(--shadow-card), 0 0 60px var(--hum-glow); }
 
-    /* ── Card layout ── */
     .card-header {
       display: flex;
       align-items: flex-start;
@@ -351,8 +493,7 @@
     }
 
     .card-icon-wrap {
-      width: 48px;
-      height: 48px;
+      width: 48px; height: 48px;
       border-radius: 14px;
       display: flex;
       align-items: center;
@@ -361,18 +502,12 @@
       transition: transform 0.3s ease;
     }
 
-    .metric-card:hover .card-icon-wrap {
-      transform: rotate(8deg) scale(1.1);
-    }
+    .metric-card:hover .card-icon-wrap { transform: rotate(8deg) scale(1.1); }
 
-    .card-temp .card-icon-wrap  { background: rgba(255,107,53,0.14); box-shadow: 0 0 20px rgba(255,107,53,0.2); }
+    .card-temp  .card-icon-wrap { background: rgba(255,107,53,0.14); box-shadow: 0 0 20px rgba(255,107,53,0.2); }
     .card-humid .card-icon-wrap { background: rgba(0,198,255,0.12);  box-shadow: 0 0 20px rgba(0,198,255,0.18); }
 
-    /* ── Value display ── */
-    .card-value-block {
-      position: relative;
-      z-index: 1;
-    }
+    .card-value-block { position: relative; z-index: 1; }
 
     .value-number {
       font-family: 'DM Mono', monospace;
@@ -383,10 +518,7 @@
       transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22,1,0.36,1);
     }
 
-    .value-number.updating {
-      opacity: 0.4;
-      transform: scale(0.97);
-    }
+    .value-number.updating { opacity: 0.4; transform: scale(0.97); }
 
     .card-temp  .value-number { color: var(--temp-base);
       text-shadow: 0 0 40px rgba(255,107,53,0.5), 0 0 80px rgba(255,107,53,0.2); }
@@ -410,7 +542,6 @@
       font-weight: 400;
     }
 
-    /* ── Status chip ── */
     .status-chip {
       display: inline-flex;
       align-items: center;
@@ -431,11 +562,47 @@
     .card-humid .chip-dot    { background: var(--hum-base); }
 
     /* ─────────────────────────────────────────────
+       STATS ROW
+    ───────────────────────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: clamp(8px, 1.5vw, 14px);
+    }
+
+    .stat-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-inner);
+      padding: clamp(12px, 2vw, 18px);
+      text-align: center;
+      transition: border-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .stat-box:hover { border-color: var(--border-active); transform: translateY(-2px); }
+
+    .stat-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: 'DM Mono', monospace;
+      font-size: clamp(16px, 3vw, 22px);
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    /* ─────────────────────────────────────────────
        CHART SECTION
     ───────────────────────────────────────────── */
     .charts-section {
       margin-top: clamp(28px, 4vw, 48px);
-      margin-bottom: clamp(32px, 5vw, 60px);
+      margin-bottom: clamp(16px, 3vw, 32px);
     }
 
     .charts-grid {
@@ -457,10 +624,7 @@
       transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1);
     }
 
-    .chart-card:hover {
-      border-color: var(--border-active);
-      transform: translateY(-3px);
-    }
+    .chart-card:hover { border-color: var(--border-active); transform: translateY(-3px); }
 
     .chart-card::before {
       content: '';
@@ -481,10 +645,7 @@
 
     .chart-title-wrap { display: flex; align-items: center; gap: 10px; }
 
-    .chart-dot {
-      width: 10px; height: 10px; border-radius: 50%;
-    }
-
+    .chart-dot { width: 10px; height: 10px; border-radius: 50%; }
     .chart-temp  .chart-dot { background: var(--temp-base); box-shadow: 0 0 8px var(--temp-base); }
     .chart-humid .chart-dot { background: var(--hum-base);  box-shadow: 0 0 8px var(--hum-base); }
 
@@ -508,156 +669,708 @@
     .chart-temp  .chart-badge { background: rgba(255,107,53,0.12); color: var(--temp-mid); border: 1px solid rgba(255,107,53,0.2); }
     .chart-humid .chart-badge { background: rgba(0,198,255,0.10);  color: var(--hum-base);  border: 1px solid rgba(0,198,255,0.18); }
 
-    .chart-canvas-wrap {
-      height: 180px;
-      position: relative;
+    .chart-canvas-wrap { height: 180px; position: relative; }
+
+    /* ─────────────────────────────────────────────
+       SMART INSIGHTS
+    ───────────────────────────────────────────── */
+    .insights-section {
+      margin-top: clamp(20px, 3vw, 36px);
+      margin-bottom: clamp(24px, 4vw, 48px);
+    }
+
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+      gap: clamp(10px, 2vw, 16px);
+    }
+
+    .insight-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-inner);
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+
+    .insight-card:hover { border-color: var(--border-active); transform: translateY(-2px); }
+
+    .insight-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .insight-body {}
+
+    .insight-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .insight-text {
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.45;
     }
 
     /* ─────────────────────────────────────────────
-       STATS ROW
+       ANALYTICS TAB
     ───────────────────────────────────────────── */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
-      gap: clamp(10px, 2vw, 16px);
-      margin-top: clamp(14px, 2.5vw, 24px);
+    .analytics-section { margin-top: clamp(24px, 4vw, 40px); }
+
+    .analytics-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
     }
 
-    .stat-box {
-      background: rgba(255,255,255,0.025);
+    .analytics-date-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-secondary);
+      letter-spacing: 0.08em;
+    }
+
+    .period-btns {
+      display: flex;
+      gap: 4px;
+    }
+
+    .period-btn {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .period-btn.active {
+      background: rgba(59,130,246,0.15);
+      border-color: rgba(59,130,246,0.3);
+      color: var(--accent-blue);
+    }
+
+    .period-btn:hover:not(.active) { color: var(--text-primary); border-color: var(--border-active); }
+
+    .analytics-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: clamp(10px, 2vw, 16px);
+      margin-bottom: 24px;
+    }
+
+    .analytics-stat-card {
+      background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-inner);
-      padding: 14px 16px;
-      text-align: center;
-      transition: background 0.2s ease, border-color 0.2s ease;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s, transform 0.25s;
     }
 
-    .stat-box:hover {
-      background: rgba(255,255,255,0.045);
-      border-color: var(--border-active);
+    .analytics-stat-card:hover { border-color: var(--border-active); transform: translateY(-2px); }
+
+    .analytics-stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
     }
 
-    .stat-label {
+    .asc-temp::before { background: linear-gradient(90deg, var(--temp-base), transparent); }
+    .asc-hum::before  { background: linear-gradient(90deg, var(--hum-base), transparent); }
+    .asc-alert::before { background: linear-gradient(90deg, #ef4444, transparent); }
+    .asc-generic::before { background: linear-gradient(90deg, var(--accent-purple), transparent); }
+
+    .asc-label {
+      font-family: 'Rajdhani', sans-serif;
       font-size: 10px;
-      font-weight: 500;
-      letter-spacing: 0.14em;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
-    .stat-value {
+    .asc-value {
+      font-family: 'DM Mono', monospace;
+      font-size: clamp(22px, 4vw, 32px);
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .asc-temp .asc-value { color: var(--temp-base); }
+    .asc-hum  .asc-value { color: var(--hum-base); }
+    .asc-alert .asc-value { color: #ef4444; }
+    .asc-generic .asc-value { color: var(--accent-purple); }
+
+    .asc-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .analytics-chart-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: clamp(20px, 3vw, 30px);
+      margin-bottom: 20px;
+    }
+
+    .analytics-chart-wrap canvas { height: 220px !important; }
+
+    .analytics-minmax-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .minmax-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-inner);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .minmax-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .minmax-value {
       font-family: 'DM Mono', monospace;
       font-size: 18px;
-      font-weight: 400;
+      font-weight: 500;
       color: var(--text-primary);
     }
 
+    .analytics-no-data {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+    }
+
+    .analytics-no-data .nd-icon { font-size: 36px; display: block; margin-bottom: 12px; }
+
     /* ─────────────────────────────────────────────
-       LOADING OVERLAY
+       CALENDAR TAB
     ───────────────────────────────────────────── */
-    #loading-overlay {
-      position: fixed;
-      inset: 0;
-      background: var(--bg-base);
+    .calendar-section { margin-top: clamp(24px, 4vw, 40px); }
+
+    .calendar-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .cal-nav-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .cal-nav-btn:hover { border-color: var(--border-active); color: var(--text-primary); }
+
+    .cal-month-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+      min-width: 180px;
+      text-align: center;
+    }
+
+    .calendar-legend {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+
+    .legend-gradient {
+      width: 80px; height: 10px;
+      border-radius: 5px;
+      background: linear-gradient(90deg, #3b82f6, #22d3a5, #f59e0b, #ef4444);
+    }
+
+    .calendar-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: clamp(16px, 3vw, 28px);
+      overflow-x: auto;
+    }
+
+    .cal-days-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+
+    .cal-day-name {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 6px 4px;
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cal-cell {
+      aspect-ratio: 1;
+      min-width: 36px;
+      border-radius: 10px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      z-index: 9999;
-      gap: 20px;
-      transition: opacity 0.6s ease, visibility 0.6s ease;
+      gap: 2px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      border: 1px solid transparent;
     }
 
-    #loading-overlay.hidden {
-      opacity: 0;
-      visibility: hidden;
+    .cal-cell:hover {
+      transform: scale(1.12);
+      z-index: 10;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      border-color: rgba(255,255,255,0.15);
     }
 
-    .loader-title {
+    .cal-cell.empty { background: transparent; cursor: default; pointer-events: none; }
+    .cal-cell.no-data { background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.05); }
+    .cal-cell.today { border-color: rgba(255,255,255,0.3) !important; box-shadow: 0 0 12px rgba(59,130,246,0.25); }
+
+    .cal-cell .cal-date {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .cal-cell.no-data .cal-date { color: var(--text-muted); }
+
+    .cal-cell .cal-temp {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* Calendar detail panel */
+    .cal-detail {
+      background: var(--bg-card);
+      border: 1px solid var(--border-active);
+      border-radius: var(--radius-card);
+      padding: 24px 28px;
+      margin-top: 16px;
+      display: none;
+      animation: tabFadeIn 0.3s ease forwards;
+    }
+
+    .cal-detail.visible { display: block; }
+
+    .cal-detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .cal-detail-date {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-primary);
+    }
+
+    .cal-close-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .cal-close-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+    .cal-detail-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 10px;
+    }
+
+    .cal-stat {
+      text-align: center;
+      background: rgba(255,255,255,0.03);
+      border-radius: var(--radius-inner);
+      padding: 12px;
+    }
+
+    .cal-stat-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+
+    .cal-stat-value {
+      font-family: 'DM Mono', monospace;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    /* ─────────────────────────────────────────────
+       ENVIRONMENT TAB
+    ───────────────────────────────────────────── */
+    .env-section { margin-top: clamp(24px, 4vw, 40px); }
+
+    .env-permission-banner {
+      background: linear-gradient(135deg, rgba(34,211,165,0.08) 0%, rgba(59,130,246,0.06) 100%);
+      border: 1px solid rgba(34,211,165,0.2);
+      border-radius: var(--radius-card);
+      padding: 36px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .env-permission-banner.hidden { display: none; }
+
+    .env-perm-icon { font-size: 42px; display: block; margin-bottom: 14px; }
+
+    .env-perm-title {
       font-family: 'Rajdhani', sans-serif;
       font-size: 20px;
       font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .env-perm-sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .env-grant-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, rgba(34,211,165,0.2) 0%, rgba(59,130,246,0.15) 100%);
+      border: 1px solid rgba(34,211,165,0.3);
+      border-radius: 30px;
+      padding: 10px 24px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--env-base);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .env-grant-btn:hover {
+      background: linear-gradient(135deg, rgba(34,211,165,0.3) 0%, rgba(59,130,246,0.22) 100%);
+      box-shadow: 0 0 20px rgba(34,211,165,0.2);
+    }
+
+    .env-api-note {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 12px;
+      letter-spacing: 0.06em;
+    }
+
+    .env-data-panel { display: none; }
+    .env-data-panel.visible { display: block; }
+
+    .env-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+      gap: clamp(14px, 2.5vw, 20px);
+      margin-bottom: 24px;
+    }
+
+    .env-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+
+    .env-card:hover { border-color: var(--border-active); transform: translateY(-3px); }
+
+    .env-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+    }
+
+    .env-card-weather::before { background: linear-gradient(90deg, var(--env-base), transparent); }
+    .env-card-aqi::before     { background: linear-gradient(90deg, var(--aqi-moderate), transparent); }
+    .env-card-compare::before { background: linear-gradient(90deg, var(--accent-purple), transparent); }
+
+    .env-card-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
       letter-spacing: 0.2em;
       text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .env-main-value {
+      font-family: 'DM Mono', monospace;
+      font-size: clamp(38px, 7vw, 56px);
+      font-weight: 500;
+      line-height: 1;
+      color: var(--env-base);
+    }
+
+    .env-card-weather .env-main-value { color: var(--env-base); }
+
+    .env-unit {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      vertical-align: super;
+      opacity: 0.6;
+      margin-left: 3px;
+    }
+
+    .env-sub {
+      font-size: 12px;
       color: var(--text-secondary);
+      margin-top: 8px;
     }
 
-    .loader-spinner {
-      width: 44px;
-      height: 44px;
-      border: 2px solid rgba(255,255,255,0.08);
-      border-top-color: var(--hum-base);
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
+    .env-details-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      flex-wrap: wrap;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .loader-sub {
+    .env-detail-item {
       font-family: 'DM Mono', monospace;
       font-size: 11px;
       color: var(--text-muted);
-      letter-spacing: 0.1em;
-      animation: blink 1.4s step-end infinite;
     }
 
-    @keyframes blink { 50% { opacity: 0; } }
-
-    /* ─────────────────────────────────────────────
-       ERROR BANNER
-    ───────────────────────────────────────────── */
-    #error-banner {
-      display: none;
-      align-items: center;
-      gap: 10px;
-      background: rgba(255, 60, 80, 0.08);
-      border: 1px solid rgba(255, 60, 80, 0.22);
-      border-radius: var(--radius-inner);
-      padding: 12px 16px;
-      margin-top: 20px;
-      font-size: 13px;
-      color: #ff6b7a;
-      font-family: 'DM Mono', monospace;
-      letter-spacing: 0.04em;
+    .env-detail-item span {
+      color: var(--text-secondary);
+      margin-left: 4px;
     }
 
-    #error-banner.visible { display: flex; }
-
-    /* ─────────────────────────────────────────────
-       FADE-IN ANIMATION ON LOAD
-    ───────────────────────────────────────────── */
-    .fade-in {
-      opacity: 0;
-      transform: translateY(20px);
-      animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    /* AQI specific */
+    .aqi-bar-wrap {
+      margin-top: 14px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 8px;
+      height: 8px;
+      overflow: hidden;
     }
 
-    .fade-in:nth-child(1) { animation-delay: 0.1s; }
-    .fade-in:nth-child(2) { animation-delay: 0.22s; }
-    .fade-in:nth-child(3) { animation-delay: 0.34s; }
-    .fade-in:nth-child(4) { animation-delay: 0.46s; }
-
-    @keyframes fadeInUp {
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ─────────────────────────────────────────────
-       REFRESH PROGRESS
-    ───────────────────────────────────────────── */
-    .refresh-bar-wrap {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 2px;
-      z-index: 500;
-    }
-
-    .refresh-bar {
+    .aqi-bar {
       height: 100%;
-      background: linear-gradient(90deg, var(--hum-base), var(--temp-base));
-      width: 0%;
-      transition: width 0.15s linear;
+      border-radius: 8px;
+      transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
     }
+
+    .aqi-category {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      margin-top: 8px;
+      letter-spacing: 0.08em;
+    }
+
+    /* Comparison card */
+    .compare-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 10px;
+    }
+
+    .compare-val {
+      text-align: center;
+      flex: 1;
+    }
+
+    .compare-val-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .compare-val-number {
+      font-family: 'DM Mono', monospace;
+      font-size: 28px;
+      font-weight: 500;
+    }
+
+    .compare-vs {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .compare-insight {
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: rgba(139,92,246,0.08);
+      border: 1px solid rgba(139,92,246,0.18);
+      border-radius: var(--radius-inner);
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .env-location-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .env-loading {
+      text-align: center;
+      padding: 40px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* OpenWeather key input */
+    .api-key-section {
+      background: rgba(255,193,7,0.05);
+      border: 1px solid rgba(255,193,7,0.15);
+      border-radius: var(--radius-inner);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .api-key-section.hidden { display: none; }
+
+    .api-key-note {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: #f59e0b;
+      letter-spacing: 0.06em;
+      flex: 1;
+    }
+
+    .api-key-input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-active);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-primary);
+      outline: none;
+      width: 220px;
+      transition: border-color 0.2s;
+    }
+
+    .api-key-input:focus { border-color: rgba(59,130,246,0.5); }
+
+    .api-key-save-btn {
+      background: rgba(59,130,246,0.15);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--accent-blue);
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .api-key-save-btn:hover { background: rgba(59,130,246,0.25); }
 
     /* ─────────────────────────────────────────────
        FOOTER
@@ -665,7 +1378,7 @@
     footer {
       border-top: 1px solid var(--border);
       padding: 20px 0;
-      margin-top: 0;
+      margin-top: 32px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -686,62 +1399,60 @@
       gap: 8px;
     }
 
-    .channel-tag {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 3px 8px;
-      color: var(--text-muted);
-      letter-spacing: 0.05em;
-    }
-
     /* ─────────────────────────────────────────────
-       RESPONSIVE TWEAKS
+       RESPONSIVE
     ───────────────────────────────────────────── */
-    @media (max-width: 480px) {
+    @media (max-width: 580px) {
+      .tab-nav { gap: 3px; padding: 4px; }
+      .tab-btn { padding: 6px 12px; font-size: 11px; }
       .header-right { gap: 10px; }
       .last-updated { display: none; }
       .chart-canvas-wrap { height: 150px; }
+      .analytics-minmax-grid { grid-template-columns: 1fr 1fr; }
+      .compare-row { flex-direction: column; gap: 8px; }
     }
 
     @media (min-width: 1024px) {
       .cards-grid  { grid-template-columns: 1fr 1fr; }
       .charts-grid { grid-template-columns: 1fr 1fr; }
     }
+
+    /* Loading pulse for analytics */
+    .data-loading {
+      opacity: 0.5;
+      animation: dataPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes dataPulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.8; }
+    }
   </style>
 </head>
 
 <body>
 
-  <!-- ── Scanlines ── -->
   <div class="scanlines" aria-hidden="true"></div>
 
-  <!-- ── Loading Overlay ── -->
   <div id="loading-overlay">
     <div class="loader-spinner"></div>
     <div class="loader-title">Room Monitor</div>
     <div class="loader-sub">Connecting to sensors_</div>
   </div>
 
-  <!-- ── Refresh Progress Bar ── -->
   <div class="refresh-bar-wrap">
     <div class="refresh-bar" id="refresh-bar"></div>
   </div>
 
-  <!-- ══════════════════════════════════════════
-       PAGE
-  ══════════════════════════════════════════ -->
   <div class="wrapper">
 
-    <!-- HEADER -->
+    <!-- ══ HEADER ══ -->
     <header class="fade-in">
       <div class="header-brand">
         <div class="brand-icon">🌡️</div>
         <div class="brand-text">
           <h1>Room Monitor</h1>
-          <p>Live Environment Data</p>
+          <p>Smart IoT Analytics Platform</p>
         </div>
       </div>
       <div class="header-right">
@@ -760,119 +1471,392 @@
       <span id="error-msg">Unable to fetch sensor data. Retrying…</span>
     </div>
 
-    <!-- ── HERO CARDS ── -->
-    <section class="hero-section">
-      <p class="section-label fade-in">Current Readings</p>
+    <!-- ══ TAB NAVIGATION ══ -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="live">📡 Live</button>
+      <button class="tab-btn" data-tab="analytics">📊 Analytics</button>
+      <button class="tab-btn" data-tab="calendar">📅 Calendar</button>
+      <button class="tab-btn" data-tab="environment">🌍 Environment</button>
+    </nav>
 
-      <div class="cards-grid">
+    <!-- ══════════════════════════════════════
+         TAB: LIVE
+    ══════════════════════════════════════ -->
+    <div id="tab-live" class="tab-panel active">
 
-        <!-- Temperature Card -->
-        <div class="metric-card card-temp fade-in">
-          <div class="card-header">
-            <div>
-              <div class="card-meta-label">Temperature</div>
+      <section class="hero-section">
+        <p class="section-label fade-in">Current Readings</p>
+        <div class="cards-grid">
+          <!-- Temperature Card -->
+          <div class="metric-card card-temp fade-in">
+            <div class="card-header">
+              <div><div class="card-meta-label">Temperature</div></div>
+              <div class="card-icon-wrap">🌡️</div>
             </div>
-            <div class="card-icon-wrap">🌡️</div>
+            <div class="card-value-block">
+              <div class="value-number" id="temp-value">--<span class="value-unit">°C</span></div>
+              <div class="value-sub">Ambient room temperature</div>
+              <div class="status-chip">
+                <span class="chip-dot"></span>
+                <span id="temp-status">Waiting…</span>
+              </div>
+            </div>
           </div>
-          <div class="card-value-block">
-            <div class="value-number" id="temp-value">
-              --<span class="value-unit">°C</span>
+
+          <!-- Humidity Card -->
+          <div class="metric-card card-humid fade-in">
+            <div class="card-header">
+              <div><div class="card-meta-label">Humidity</div></div>
+              <div class="card-icon-wrap">💧</div>
             </div>
-            <div class="value-sub">Ambient room temperature</div>
-            <div class="status-chip">
-              <span class="chip-dot"></span>
-              <span id="temp-status">Waiting…</span>
+            <div class="card-value-block">
+              <div class="value-number" id="hum-value">--<span class="value-unit">%</span></div>
+              <div class="value-sub">Relative air humidity</div>
+              <div class="status-chip">
+                <span class="chip-dot"></span>
+                <span id="hum-status">Waiting…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats Row -->
+      <div class="stats-row" id="stats-row" style="margin-top:clamp(14px,2.5vw,24px)">
+        <div class="stat-box fade-in">
+          <div class="stat-label">Temp High</div>
+          <div class="stat-value" id="stat-tmax">--</div>
+        </div>
+        <div class="stat-box fade-in">
+          <div class="stat-label">Temp Low</div>
+          <div class="stat-value" id="stat-tmin">--</div>
+        </div>
+        <div class="stat-box fade-in">
+          <div class="stat-label">Hum High</div>
+          <div class="stat-value" id="stat-hmax">--</div>
+        </div>
+        <div class="stat-box fade-in">
+          <div class="stat-label">Hum Low</div>
+          <div class="stat-value" id="stat-hmin">--</div>
+        </div>
+        <div class="stat-box fade-in">
+          <div class="stat-label">Data Points</div>
+          <div class="stat-value" id="stat-count">--</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <section class="charts-section">
+        <p class="section-label fade-in">Live Trend (last 30 readings)</p>
+        <div class="charts-grid">
+          <div class="chart-card chart-temp fade-in">
+            <div class="chart-header">
+              <div class="chart-title-wrap">
+                <span class="chart-dot"></span>
+                <span class="chart-title">Temperature</span>
+              </div>
+              <span class="chart-badge">°C</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chart-temp"></canvas>
+            </div>
+          </div>
+          <div class="chart-card chart-humid fade-in">
+            <div class="chart-header">
+              <div class="chart-title-wrap">
+                <span class="chart-dot"></span>
+                <span class="chart-title">Humidity</span>
+              </div>
+              <span class="chart-badge">%</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chart-hum"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Smart Insights -->
+      <section class="insights-section">
+        <p class="section-label">Smart Insights</p>
+        <div class="insights-grid" id="insights-grid">
+          <div class="insight-card">
+            <div class="insight-icon">⏳</div>
+            <div class="insight-body">
+              <div class="insight-title">Gathering data…</div>
+              <div class="insight-text" id="insight-peak-temp">Insights appear after a few readings.</div>
+            </div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-icon">💧</div>
+            <div class="insight-body">
+              <div class="insight-title">Humidity Trend</div>
+              <div class="insight-text" id="insight-hum-trend">Tracking humidity changes…</div>
+            </div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-icon">🚨</div>
+            <div class="insight-body">
+              <div class="insight-title">Alert Events</div>
+              <div class="insight-text" id="insight-alerts">No threshold crossings yet.</div>
+            </div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-icon">📈</div>
+            <div class="insight-body">
+              <div class="insight-title">Temp Direction</div>
+              <div class="insight-text" id="insight-trend">Watching for trends…</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /tab-live -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: ANALYTICS
+    ══════════════════════════════════════ -->
+    <div id="tab-analytics" class="tab-panel">
+      <section class="analytics-section">
+
+        <div class="analytics-header">
+          <div>
+            <p class="section-label" style="margin-bottom:4px">Analytics Dashboard</p>
+            <div class="analytics-date-label" id="analytics-date-label">—</div>
+          </div>
+          <div class="period-btns">
+            <button class="period-btn active" data-period="today">Today</button>
+            <button class="period-btn" data-period="week">7 Days</button>
+            <button class="period-btn" data-period="month">30 Days</button>
+          </div>
+        </div>
+
+        <!-- Key stats -->
+        <div class="analytics-stats-grid">
+          <div class="analytics-stat-card asc-temp">
+            <div class="asc-label">Avg Temperature</div>
+            <div class="asc-value" id="an-avg-temp">--</div>
+            <div class="asc-sub">°C average</div>
+          </div>
+          <div class="analytics-stat-card asc-hum">
+            <div class="asc-label">Avg Humidity</div>
+            <div class="asc-value" id="an-avg-hum">--</div>
+            <div class="asc-sub">% average</div>
+          </div>
+          <div class="analytics-stat-card asc-alert">
+            <div class="asc-label">Alert Events</div>
+            <div class="asc-value" id="an-alerts">--</div>
+            <div class="asc-sub">above 35°C</div>
+          </div>
+          <div class="analytics-stat-card asc-generic">
+            <div class="asc-label">Data Points</div>
+            <div class="asc-value" id="an-points">--</div>
+            <div class="asc-sub">readings logged</div>
+          </div>
+        </div>
+
+        <!-- Min / Max -->
+        <div class="analytics-minmax-grid" style="margin-bottom:20px">
+          <div class="minmax-card">
+            <div>
+              <div class="minmax-label">🔥 Temp High</div>
+              <div class="minmax-value" id="an-tmax">--°C</div>
+            </div>
+          </div>
+          <div class="minmax-card">
+            <div>
+              <div class="minmax-label">🧊 Temp Low</div>
+              <div class="minmax-value" id="an-tmin">--°C</div>
+            </div>
+          </div>
+          <div class="minmax-card">
+            <div>
+              <div class="minmax-label">🌊 Hum High</div>
+              <div class="minmax-value" id="an-hmax">--%</div>
+            </div>
+          </div>
+          <div class="minmax-card">
+            <div>
+              <div class="minmax-label">🏜 Hum Low</div>
+              <div class="minmax-value" id="an-hmin">--%</div>
             </div>
           </div>
         </div>
 
-        <!-- Humidity Card -->
-        <div class="metric-card card-humid fade-in">
-          <div class="card-header">
-            <div>
-              <div class="card-meta-label">Humidity</div>
-            </div>
-            <div class="card-icon-wrap">💧</div>
-          </div>
-          <div class="card-value-block">
-            <div class="value-number" id="hum-value">
-              --<span class="value-unit">%</span>
-            </div>
-            <div class="value-sub">Relative air humidity</div>
-            <div class="status-chip">
-              <span class="chip-dot"></span>
-              <span id="hum-status">Waiting…</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ── STATS ROW ── -->
-    <div class="stats-row" id="stats-row" style="margin-top:clamp(14px,2.5vw,24px)">
-      <div class="stat-box fade-in">
-        <div class="stat-label">Temp High (session)</div>
-        <div class="stat-value" id="stat-tmax">--</div>
-      </div>
-      <div class="stat-box fade-in">
-        <div class="stat-label">Temp Low (session)</div>
-        <div class="stat-value" id="stat-tmin">--</div>
-      </div>
-      <div class="stat-box fade-in">
-        <div class="stat-label">Hum High (session)</div>
-        <div class="stat-value" id="stat-hmax">--</div>
-      </div>
-      <div class="stat-box fade-in">
-        <div class="stat-label">Hum Low (session)</div>
-        <div class="stat-value" id="stat-hmin">--</div>
-      </div>
-      <div class="stat-box fade-in">
-        <div class="stat-label">Data Points</div>
-        <div class="stat-value" id="stat-count">--</div>
-      </div>
-    </div>
-
-    <!-- ── CHARTS ── -->
-    <section class="charts-section">
-      <p class="section-label fade-in">Historical Trend (last 30 readings)</p>
-
-      <div class="charts-grid">
-
-        <!-- Temperature Chart -->
-        <div class="chart-card chart-temp fade-in">
+        <!-- Analytics Chart -->
+        <div class="analytics-chart-wrap">
           <div class="chart-header">
             <div class="chart-title-wrap">
-              <span class="chart-dot"></span>
-              <span class="chart-title">Temperature</span>
+              <span class="chart-dot" style="background:var(--temp-base); box-shadow: 0 0 8px var(--temp-base)"></span>
+              <span class="chart-title">Temperature Over Time</span>
             </div>
-            <span class="chart-badge">°C</span>
+            <span class="chart-badge" style="background:rgba(255,107,53,0.12);color:var(--temp-mid);border:1px solid rgba(255,107,53,0.2)">°C</span>
           </div>
-          <div class="chart-canvas-wrap">
-            <canvas id="chart-temp"></canvas>
+          <div style="height:220px; position:relative">
+            <canvas id="chart-analytics-temp"></canvas>
           </div>
         </div>
 
-        <!-- Humidity Chart -->
-        <div class="chart-card chart-humid fade-in">
+        <div class="analytics-chart-wrap" style="margin-top:16px">
           <div class="chart-header">
             <div class="chart-title-wrap">
-              <span class="chart-dot"></span>
-              <span class="chart-title">Humidity</span>
+              <span class="chart-dot" style="background:var(--hum-base); box-shadow: 0 0 8px var(--hum-base)"></span>
+              <span class="chart-title">Humidity Over Time</span>
             </div>
-            <span class="chart-badge">%</span>
+            <span class="chart-badge" style="background:rgba(0,198,255,0.10);color:var(--hum-base);border:1px solid rgba(0,198,255,0.18)">%</span>
           </div>
-          <div class="chart-canvas-wrap">
-            <canvas id="chart-hum"></canvas>
+          <div style="height:220px; position:relative">
+            <canvas id="chart-analytics-hum"></canvas>
           </div>
         </div>
 
-      </div>
-    </section>
+        <div id="analytics-no-data" class="analytics-no-data" style="display:none">
+          <span class="nd-icon">📭</span>
+          No historical data found for this period.<br>Make sure NodeMCU is logging to <code style="color:var(--temp-mid)">logs/</code> in Firebase.
+        </div>
+
+      </section>
+    </div><!-- /tab-analytics -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: CALENDAR
+    ══════════════════════════════════════ -->
+    <div id="tab-calendar" class="tab-panel">
+      <section class="calendar-section">
+        <div class="calendar-controls">
+          <button class="cal-nav-btn" id="cal-prev">‹</button>
+          <div class="cal-month-label" id="cal-month-label">—</div>
+          <button class="cal-nav-btn" id="cal-next">›</button>
+          <div class="calendar-legend">
+            <span>Cool</span>
+            <div class="legend-gradient"></div>
+            <span>Hot</span>
+          </div>
+        </div>
+
+        <div class="calendar-wrap">
+          <div class="cal-days-header">
+            <div class="cal-day-name">Sun</div>
+            <div class="cal-day-name">Mon</div>
+            <div class="cal-day-name">Tue</div>
+            <div class="cal-day-name">Wed</div>
+            <div class="cal-day-name">Thu</div>
+            <div class="cal-day-name">Fri</div>
+            <div class="cal-day-name">Sat</div>
+          </div>
+          <div class="cal-grid" id="cal-grid">
+            <!-- cells injected by JS -->
+          </div>
+        </div>
+
+        <div class="cal-detail" id="cal-detail">
+          <div class="cal-detail-header">
+            <div class="cal-detail-date" id="cal-detail-date">—</div>
+            <button class="cal-close-btn" id="cal-close-btn">✕ Close</button>
+          </div>
+          <div class="cal-detail-stats" id="cal-detail-stats">
+            <!-- stats injected by JS -->
+          </div>
+        </div>
+      </section>
+    </div><!-- /tab-calendar -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: ENVIRONMENT
+    ══════════════════════════════════════ -->
+    <div id="tab-environment" class="tab-panel">
+      <section class="env-section">
+
+        <!-- API Key input -->
+        <div class="api-key-section" id="api-key-section">
+          <div class="api-key-note">⚠ Enter your free OpenWeatherMap API key to enable weather + AQI data:</div>
+          <input type="text" class="api-key-input" id="owm-api-key-input" placeholder="paste-your-api-key-here" />
+          <button class="api-key-save-btn" id="owm-api-save">Save</button>
+        </div>
+
+        <!-- Location permission banner -->
+        <div class="env-permission-banner" id="env-permission-banner">
+          <span class="env-perm-icon">🌍</span>
+          <div class="env-perm-title">Enable Environment Monitoring</div>
+          <div class="env-perm-sub">Grant location access to fetch real-time weather and air quality data for your area.</div>
+          <button class="env-grant-btn" id="env-grant-btn">📍 Grant Location Access</button>
+          <div class="env-api-note">Uses OpenWeatherMap free API · No account required with API key</div>
+        </div>
+
+        <!-- Loading state -->
+        <div class="env-loading" id="env-loading" style="display:none">
+          <div class="loader-spinner" style="margin:0 auto 16px"></div>
+          Fetching weather data…
+        </div>
+
+        <!-- Data panel -->
+        <div class="env-data-panel" id="env-data-panel">
+
+          <div class="env-location-info" id="env-location-info">
+            <span>📍</span>
+            <span id="env-location-text">—</span>
+          </div>
+
+          <div class="env-cards-grid">
+
+            <!-- Weather card -->
+            <div class="env-card env-card-weather">
+              <div class="env-card-label">Outside Temperature</div>
+              <div class="env-main-value" id="env-temp-val">--<span class="env-unit">°C</span></div>
+              <div class="env-sub" id="env-condition">—</div>
+              <div class="env-details-row">
+                <div class="env-detail-item">Feels like<span id="env-feels-like">--°C</span></div>
+                <div class="env-detail-item">Humidity<span id="env-hum-val">--%</span></div>
+                <div class="env-detail-item">Wind<span id="env-wind">-- m/s</span></div>
+              </div>
+            </div>
+
+            <!-- AQI card -->
+            <div class="env-card env-card-aqi">
+              <div class="env-card-label">Air Quality Index</div>
+              <div class="env-main-value" style="color:var(--aqi-moderate)" id="env-aqi-val">--</div>
+              <div class="aqi-bar-wrap">
+                <div class="aqi-bar" id="env-aqi-bar" style="width:0%; background:var(--aqi-moderate)"></div>
+              </div>
+              <div class="aqi-category" id="env-aqi-cat">—</div>
+              <div class="env-details-row" style="margin-top:10px">
+                <div class="env-detail-item">PM2.5<span id="env-pm25">--</span></div>
+                <div class="env-detail-item">PM10<span id="env-pm10">--</span></div>
+                <div class="env-detail-item">CO<span id="env-co">--</span></div>
+              </div>
+            </div>
+
+            <!-- Comparison card -->
+            <div class="env-card env-card-compare">
+              <div class="env-card-label">Room vs Outside</div>
+              <div class="compare-row">
+                <div class="compare-val">
+                  <div class="compare-val-label">🏠 Room</div>
+                  <div class="compare-val-number" id="cmp-room" style="color:var(--temp-base)">--°C</div>
+                </div>
+                <div class="compare-vs">VS</div>
+                <div class="compare-val">
+                  <div class="compare-val-label">🌍 Outside</div>
+                  <div class="compare-val-number" id="cmp-outside" style="color:var(--env-base)">--°C</div>
+                </div>
+              </div>
+              <div class="compare-insight" id="cmp-insight">
+                Fetching comparison data…
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+    </div><!-- /tab-environment -->
 
     <!-- FOOTER -->
     <footer>
-      <span>Room Monitor &mdash; IoT Dashboard</span>
+      <span>Room Monitor &mdash; Smart IoT Platform</span>
       <div class="footer-right">
         <span>Auto-refresh 2s</span>
       </div>
@@ -885,18 +1869,31 @@
        JAVASCRIPT
   ══════════════════════════════════════════ -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+    import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set, get, query, limitToLast }
+                                from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
     /* ─────────────────────────────────────────
        STATE
     ───────────────────────────────────────── */
-    let chartTemp = null;
-    let chartHum  = null;
+    let chartTemp = null, chartHum = null;
+    let chartAnTemp = null, chartAnHum = null;
     let sessionTMax = -Infinity, sessionTMin = Infinity;
     let sessionHMax = -Infinity, sessionHMin = Infinity;
-    let dataCount = 0;
-    let firstLoad = true;
+    let dataCount = 0, firstLoad = true;
+    let alertCount = 0;
+    let lastTemp = null, lastHum = null;
+    let currentOutsideTemp = null;
+
+    // Charts data for insights
+    const tempReadings  = [];
+    const humReadings   = [];
+    const timeReadings  = [];
+
+    // Calendar state
+    let calYear  = new Date().getFullYear();
+    let calMonth = new Date().getMonth();
+    let logsCache = null;
 
     /* ─────────────────────────────────────────
        DOM REFS
@@ -917,85 +1914,51 @@
     const elBuzzerBtn  = document.getElementById('buzzer-btn');
 
     /* ─────────────────────────────────────────
-       CHART FACTORY — shared config
+       FIREBASE INIT
     ───────────────────────────────────────── */
-    function buildChart(canvasId, color, gradientEnd) {
-      const ctx = document.getElementById(canvasId).getContext('2d');
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNgZW_BVuzFlAfDwQiV3u3yjwFKsoeu9w",
+      databaseURL: "https://room-monitor-51054-default-rtdb.firebaseio.com"
+    };
 
-      /* vertical gradient fill */
-      const gradient = ctx.createLinearGradient(0, 0, 0, 180);
-      gradient.addColorStop(0,   color.replace(')', ', 0.28)').replace('rgb', 'rgba'));
-      gradient.addColorStop(0.7, color.replace(')', ', 0.04)').replace('rgb', 'rgba'));
-      gradient.addColorStop(1,   'rgba(0,0,0,0)');
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
 
-      return new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [{
-            data: [],
-            borderColor: color,
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            pointHoverBackgroundColor: color,
-            pointHoverBorderColor: '#0d1420',
-            pointHoverBorderWidth: 2,
-            fill: true,
-            backgroundColor: gradient,
-            tension: 0.42,
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: { duration: 600, easing: 'easeInOutCubic' },
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: 'rgba(13,20,36,0.95)',
-              borderColor: 'rgba(255,255,255,0.1)',
-              borderWidth: 1,
-              titleFont: { family: 'DM Mono', size: 10 },
-              bodyFont:  { family: 'DM Mono', size: 13 },
-              padding: 10,
-              callbacks: {
-                label: ctx => `  ${ctx.parsed.y.toFixed(1)}`
-              }
-            }
-          },
-          scales: {
-            x: {
-              display: false,
-            },
-            y: {
-              grid: {
-                color: 'rgba(255,255,255,0.045)',
-                drawBorder: false,
-              },
-              ticks: {
-                font: { family: 'DM Mono', size: 10 },
-                color: '#4a5568',
-                maxTicksLimit: 5,
-                padding: 8,
-              },
-              border: { display: false },
-            }
-          }
-        }
-      });
+    const tempRef = ref(db, 'room/temp');
+    const humRef  = ref(db, 'room/hum');
+    const buzRef  = ref(db, 'room/buzzer');
+    const logsRef = ref(db, 'logs');
+
+    /* ─────────────────────────────────────────
+       UTILITIES
+    ───────────────────────────────────────── */
+    function todayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
-    /* ─────────────────────────────────────────
-       INIT CHARTS
-    ───────────────────────────────────────── */
-    chartTemp = buildChart('chart-temp', 'rgb(255,107,53)', 'rgb(255,154,60)');
-    chartHum  = buildChart('chart-hum',  'rgb(0,198,255)',  'rgb(0,114,255)');
+    function checkFirstLoad() {
+      if (firstLoad) {
+        firstLoad = false;
+        elLoading.classList.add('hidden');
+      }
+    }
 
-    /* ─────────────────────────────────────────
-       TEMPERATURE & HUMIDITY STATUS LABELS
-    ───────────────────────────────────────── */
+    function updateTimestamp() {
+      const now = new Date();
+      elLastUpd.textContent = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    }
+    updateTimestamp();
+    setInterval(updateTimestamp, 1000);
+
+    function setValueAnimated(el, newHTML) {
+      el.classList.add('updating');
+      setTimeout(() => { el.innerHTML = newHTML; el.classList.remove('updating'); }, 220);
+    }
+
+    function showError(msg) { elErrBanner.classList.add('visible'); elErrMsg.textContent = msg; }
+    function hideError()    { elErrBanner.classList.remove('visible'); }
+
     function tempLabel(t) {
       if (t < 18)  return '🧊 Cold';
       if (t < 24)  return '✅ Comfortable';
@@ -1012,100 +1975,188 @@
       return '🌊 Very Humid';
     }
 
-    /* ─────────────────────────────────────────
-       ANIMATE VALUE UPDATE
-    ───────────────────────────────────────── */
-    function setValueAnimated(el, newHTML) {
-      el.classList.add('updating');
-      setTimeout(() => {
-        el.innerHTML = newHTML;
-        el.classList.remove('updating');
-      }, 220);
+    /* temp → heatmap color: cool blue → teal → amber → red */
+    function tempToColor(t) {
+      if (t === null) return 'rgba(255,255,255,0.04)';
+      if (t < 22) return `rgba(59,130,246,${0.3 + Math.min(0.5, (22-t)/10)})`;
+      if (t < 27) return `rgba(34,211,165,${0.3 + (t-22)/10})`;
+      if (t < 32) return `rgba(245,158,11,${0.35 + (t-27)/20})`;
+      return `rgba(239,68,68,${0.4 + Math.min(0.45, (t-32)/10)})`;
     }
 
     /* ─────────────────────────────────────────
-       ERROR HELPERS
+       CHART FACTORY
     ───────────────────────────────────────── */
-    function showError(msg) {
-      elErrBanner.classList.add('visible');
-      elErrMsg.textContent = msg;
+    function buildChart(canvasId, color) {
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+      gradient.addColorStop(0,   color.replace(')', ', 0.28)').replace('rgb', 'rgba'));
+      gradient.addColorStop(0.7, color.replace(')', ', 0.04)').replace('rgb', 'rgba'));
+      gradient.addColorStop(1,   'rgba(0,0,0,0)');
+
+      return new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ data: [], borderColor: color, borderWidth: 2,
+          pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: color,
+          pointHoverBorderColor: '#0d1420', pointHoverBorderWidth: 2,
+          fill: true, backgroundColor: gradient, tension: 0.42 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          animation: { duration: 600, easing: 'easeInOutCubic' },
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(13,20,36,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+              titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Mono', size: 13 }, padding: 10,
+              callbacks: { label: ctx => `  ${ctx.parsed.y.toFixed(1)}` }
+            }
+          },
+          scales: {
+            x: { display: false },
+            y: {
+              grid: { color: 'rgba(255,255,255,0.045)', drawBorder: false },
+              ticks: { font: { family: 'DM Mono', size: 10 }, color: '#4a5568', maxTicksLimit: 5, padding: 8 },
+              border: { display: false }
+            }
+          }
+        }
+      });
     }
 
-    function hideError() {
-      elErrBanner.classList.remove('visible');
+    function buildAnalyticsChart(canvasId, color, showXAxis = true) {
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+      gradient.addColorStop(0,   color.replace(')', ', 0.22)').replace('rgb', 'rgba'));
+      gradient.addColorStop(1,   'rgba(0,0,0,0)');
+
+      return new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ data: [], borderColor: color, borderWidth: 2,
+          pointRadius: 2, pointBackgroundColor: color,
+          pointHoverRadius: 6, fill: true, backgroundColor: gradient, tension: 0.35 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          animation: { duration: 400 },
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(13,20,36,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+              titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Mono', size: 12 }, padding: 10
+            }
+          },
+          scales: {
+            x: {
+              display: showXAxis,
+              grid: { color: 'rgba(255,255,255,0.03)' },
+              ticks: { font: { family: 'DM Mono', size: 9 }, color: '#4a5568', maxTicksLimit: 8, maxRotation: 0 },
+              border: { display: false }
+            },
+            y: {
+              grid: { color: 'rgba(255,255,255,0.045)', drawBorder: false },
+              ticks: { font: { family: 'DM Mono', size: 10 }, color: '#4a5568', maxTicksLimit: 5, padding: 8 },
+              border: { display: false }
+            }
+          }
+        }
+      });
     }
 
     /* ─────────────────────────────────────────
-       FIREBASE INTEGRATION
+       INIT CHARTS
     ───────────────────────────────────────── */
-    const firebaseConfig = {
-      apiKey: "AIzaSyDNgZW_BVuzFlAfDwQiV3u3yjwFKsoeu9w",
-      databaseURL: "https://room-monitor-51054-default-rtdb.firebaseio.com"
-    };
+    chartTemp    = buildChart('chart-temp', 'rgb(255,107,53)');
+    chartHum     = buildChart('chart-hum',  'rgb(0,198,255)');
+    chartAnTemp  = buildAnalyticsChart('chart-analytics-temp', 'rgb(255,107,53)');
+    chartAnHum   = buildAnalyticsChart('chart-analytics-hum',  'rgb(0,198,255)');
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    const tempRef = ref(db, 'room/temp');
-    const humRef  = ref(db, 'room/hum');
-    const buzRef  = ref(db, 'room/buzzer');
-
-    function checkFirstLoad() {
-      if (firstLoad) {
-        firstLoad = false;
-        elLoading.classList.add('hidden');
-      }
-    }
-
-    function updateTimestamp() {
-      const now = new Date();
-      elLastUpd.textContent = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-    }
-    
-    // Initialize real-time clock
-    updateTimestamp();
-    setInterval(updateTimestamp, 1000);
-
-    // Buzzer Control Logic
-    function buzzerOn(e) {
+    /* ─────────────────────────────────────────
+       BUZZER CONTROL
+    ───────────────────────────────────────── */
+    function buzzerOn(e)  {
       if (e && e.cancelable) e.preventDefault();
       elBuzzerBtn.classList.add('active');
-      set(buzRef, 1).catch(error => showError('Buzzer Connection Error: ' + error.message));
+      set(buzRef, 1).catch(err => showError('Buzzer Error: ' + err.message));
     }
-
     function buzzerOff(e) {
       if (e && e.cancelable) e.preventDefault();
       elBuzzerBtn.classList.remove('active');
-      set(buzRef, 0).catch(error => showError('Buzzer Connection Error: ' + error.message));
+      set(buzRef, 0).catch(err => showError('Buzzer Error: ' + err.message));
     }
 
-    // Mouse events
     elBuzzerBtn.addEventListener('mousedown', buzzerOn);
-    elBuzzerBtn.addEventListener('mouseup', buzzerOff);
-    elBuzzerBtn.addEventListener('mouseleave', buzzerOff);
+    elBuzzerBtn.addEventListener('mouseup',   buzzerOff);
+    elBuzzerBtn.addEventListener('mouseleave',buzzerOff);
+    elBuzzerBtn.addEventListener('touchstart', buzzerOn,  {passive: false});
+    elBuzzerBtn.addEventListener('touchend',   buzzerOff, {passive: false});
+    elBuzzerBtn.addEventListener('touchcancel',buzzerOff, {passive: false});
 
-    // Touch events
-    elBuzzerBtn.addEventListener('touchstart', buzzerOn, {passive: false});
-    elBuzzerBtn.addEventListener('touchend', buzzerOff, {passive: false});
-    elBuzzerBtn.addEventListener('touchcancel', buzzerOff, {passive: false});
+    /* ─────────────────────────────────────────
+       SMART INSIGHTS
+    ───────────────────────────────────────── */
+    function updateInsights() {
+      if (tempReadings.length < 3) return;
 
-    // Temperature Listener
+      const n   = tempReadings.length;
+      const maxT = Math.max(...tempReadings), maxI = tempReadings.indexOf(maxT);
+      const minT = Math.min(...tempReadings);
+
+      // Peak temp
+      document.getElementById('insight-peak-temp').textContent =
+        `Room peaked at ${maxT.toFixed(1)}°C at ${timeReadings[maxI]}.`;
+
+      // Humidity trend
+      const humSlice = humReadings.slice(-5);
+      const humDelta  = humSlice[humSlice.length-1] - humSlice[0];
+      const humIcon   = humDelta > 1 ? '↑ rising' : humDelta < -1 ? '↓ falling' : '→ stable';
+      document.getElementById('insight-hum-trend').textContent =
+        `Humidity is ${humIcon} (${humDelta > 0 ? '+' : ''}${humDelta.toFixed(1)}% last 5 readings).`;
+
+      // Alert count
+      const crossings = tempReadings.filter((t, i) =>
+        i > 0 && tempReadings[i-1] < 35 && t >= 35
+      ).length;
+      alertCount = crossings;
+      document.getElementById('insight-alerts').textContent =
+        crossings === 0
+          ? 'Temperature stayed below 35°C threshold.'
+          : `Temperature crossed 35°C threshold ${crossings} time${crossings > 1 ? 's' : ''}.`;
+
+      // Trend direction (last 6)
+      const last6 = tempReadings.slice(-6);
+      const trend  = last6[last6.length-1] - last6[0];
+      document.getElementById('insight-trend').textContent =
+        trend > 1   ? `Temperature is rising (+${trend.toFixed(1)}°C over last 6 readings).` :
+        trend < -1  ? `Temperature is falling (${trend.toFixed(1)}°C over last 6 readings).` :
+                      `Temperature is holding steady.`;
+
+      // Update icons
+      const cards = document.querySelectorAll('.insight-card');
+      cards[0].querySelector('.insight-icon').textContent = maxT > 35 ? '🌋' : maxT > 28 ? '🔥' : '🌤';
+    }
+
+    /* ─────────────────────────────────────────
+       FIREBASE LISTENERS (LIVE TAB)
+    ───────────────────────────────────────── */
     onValue(tempRef, (snapshot) => {
       const val = snapshot.val();
       if (val !== null) {
         const temp = parseFloat(val);
-        const tDisplay = isNaN(temp) ? '--' : temp.toFixed(1);
+        const tDisp = isNaN(temp) ? '--' : temp.toFixed(1);
 
-        setValueAnimated(elTempVal, `${tDisplay}<span class="value-unit">°C</span>`);
+        setValueAnimated(elTempVal, `${tDisp}<span class="value-unit">°C</span>`);
         elTempStatus.textContent = isNaN(temp) ? 'No data' : tempLabel(temp);
 
         if (!isNaN(temp)) {
+          lastTemp = temp;
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+          tempReadings.push(temp); timeReadings.push(timeStr);
+
           if (temp > sessionTMax) { sessionTMax = temp; elStatTMax.textContent = temp.toFixed(1) + '°C'; }
           if (temp < sessionTMin) { sessionTMin = temp; elStatTMin.textContent = temp.toFixed(1) + '°C'; }
 
-          // Update chart
-          const now = new Date();
-          const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
           chartTemp.data.labels.push(timeStr);
           chartTemp.data.datasets[0].data.push(temp);
           if (chartTemp.data.labels.length > 30) {
@@ -1113,35 +2164,33 @@
             chartTemp.data.datasets[0].data.shift();
           }
           chartTemp.update();
+
+          updateInsights();
+          updateCompareCard();
         }
 
-        dataCount++;
-        elStatCount.textContent = dataCount;
-        hideError();
+        dataCount++; elStatCount.textContent = dataCount; hideError();
       }
       checkFirstLoad();
-    }, (error) => {
-      showError('Firebase Connection Error: ' + error.message);
-    });
+    }, err => showError('Firebase Error: ' + err.message));
 
-    // Humidity Listener
     onValue(humRef, (snapshot) => {
       const val = snapshot.val();
       if (val !== null) {
         const hum = parseFloat(val);
-        const hDisplay = isNaN(hum) ? '--' : hum.toFixed(1);
+        const hDisp = isNaN(hum) ? '--' : hum.toFixed(1);
 
-        setValueAnimated(elHumVal, `${hDisplay}<span class="value-unit">%</span>`);
+        setValueAnimated(elHumVal, `${hDisp}<span class="value-unit">%</span>`);
         elHumStatus.textContent = isNaN(hum) ? 'No data' : humLabel(hum);
 
         if (!isNaN(hum)) {
+          lastHum = hum;
+          humReadings.push(hum);
+
           if (hum > sessionHMax) { sessionHMax = hum; elStatHMax.textContent = hum.toFixed(1) + '%'; }
           if (hum < sessionHMin) { sessionHMin = hum; elStatHMin.textContent = hum.toFixed(1) + '%'; }
 
-          // Update chart
-          const now = new Date();
-          const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-          chartHum.data.labels.push(timeStr);
+          chartHum.data.labels.push(new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
           chartHum.data.datasets[0].data.push(hum);
           if (chartHum.data.labels.length > 30) {
             chartHum.data.labels.shift();
@@ -1150,14 +2199,418 @@
           chartHum.update();
         }
 
-        dataCount++;
-        elStatCount.textContent = dataCount;
-        hideError();
+        dataCount++; elStatCount.textContent = dataCount; hideError();
       }
       checkFirstLoad();
-    }, (error) => {
-      showError('Firebase Connection Error: ' + error.message);
+    }, err => showError('Firebase Error: ' + err.message));
+
+
+    /* ─────────────────────────────────────────
+       TAB NAVIGATION
+    ───────────────────────────────────────── */
+    const tabBtns   = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabPanels.forEach(p => { p.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById('tab-' + target).classList.add('active');
+
+        if (target === 'analytics') loadAnalytics('today');
+        if (target === 'calendar')  renderCalendar();
+      });
     });
+
+    /* ─────────────────────────────────────────
+       ANALYTICS TAB
+    ───────────────────────────────────────── */
+    const periodBtns = document.querySelectorAll('.period-btn');
+    periodBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        periodBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadAnalytics(btn.dataset.period);
+      });
+    });
+
+    async function loadAnalytics(period) {
+      // Show loading state
+      document.getElementById('an-avg-temp').textContent = '…';
+      document.getElementById('an-avg-hum').textContent  = '…';
+      document.getElementById('an-alerts').textContent   = '…';
+      document.getElementById('an-points').textContent   = '…';
+
+      const noData = document.getElementById('analytics-no-data');
+      noData.style.display = 'none';
+
+      const today = new Date();
+      const dateLabel = document.getElementById('analytics-date-label');
+
+      let tempData = [], humData = [], labelData = [], alertEvents = 0;
+
+      try {
+        const snapshot = await get(logsRef);
+        const logs = snapshot.val();
+
+        if (!logs) { showNoAnalyticsData(dateLabel, period); return; }
+
+        // Collect relevant dates
+        const dates = [];
+        if (period === 'today') {
+          dates.push(todayStr());
+          dateLabel.textContent = new Date().toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+        } else if (period === 'week') {
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+          }
+          dateLabel.textContent = 'Last 7 Days';
+        } else {
+          for (let i = 29; i >= 0; i--) {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+          }
+          dateLabel.textContent = 'Last 30 Days';
+        }
+
+        dates.forEach(dateKey => {
+          const dayData = logs[dateKey];
+          if (!dayData) return;
+
+          if (period === 'today') {
+            // Hourly resolution for today
+            Object.keys(dayData).sort().forEach(timeKey => {
+              const entry = dayData[timeKey];
+              if (entry && entry.temp != null && entry.hum != null) {
+                tempData.push(parseFloat(entry.temp));
+                humData.push(parseFloat(entry.hum));
+                labelData.push(timeKey);
+                if (parseFloat(entry.temp) >= 35) alertEvents++;
+              }
+            });
+          } else {
+            // Daily average for week/month
+            let dayTemps = [], dayHums = [];
+            Object.values(dayData).forEach(entry => {
+              if (entry && entry.temp != null) { dayTemps.push(parseFloat(entry.temp)); dayHums.push(parseFloat(entry.hum)); }
+            });
+            if (dayTemps.length > 0) {
+              const avgT = dayTemps.reduce((a,b)=>a+b,0)/dayTemps.length;
+              const avgH = dayHums.reduce((a,b)=>a+b,0)/dayHums.length;
+              tempData.push(avgT); humData.push(avgH);
+              labelData.push(dateKey.slice(5)); // MM-DD
+              alertEvents += dayTemps.filter(t => t >= 35).length;
+            }
+          }
+        });
+
+        if (tempData.length === 0) { showNoAnalyticsData(dateLabel, period); return; }
+
+        // Compute stats
+        const avgT = tempData.reduce((a,b)=>a+b,0)/tempData.length;
+        const avgH = humData.reduce((a,b)=>a+b,0)/humData.length;
+        const maxT = Math.max(...tempData), minT = Math.min(...tempData);
+        const maxH = Math.max(...humData),  minH = Math.min(...humData);
+
+        document.getElementById('an-avg-temp').textContent = avgT.toFixed(1);
+        document.getElementById('an-avg-hum').textContent  = avgH.toFixed(1);
+        document.getElementById('an-alerts').textContent   = alertEvents;
+        document.getElementById('an-points').textContent   = tempData.length;
+        document.getElementById('an-tmax').textContent     = maxT.toFixed(1) + '°C';
+        document.getElementById('an-tmin').textContent     = minT.toFixed(1) + '°C';
+        document.getElementById('an-hmax').textContent     = maxH.toFixed(1) + '%';
+        document.getElementById('an-hmin').textContent     = minH.toFixed(1) + '%';
+
+        // Update analytics charts
+        chartAnTemp.data.labels   = labelData;
+        chartAnTemp.data.datasets[0].data = tempData;
+        chartAnTemp.update();
+
+        chartAnHum.data.labels   = labelData;
+        chartAnHum.data.datasets[0].data = humData;
+        chartAnHum.update();
+
+      } catch(e) {
+        showNoAnalyticsData(dateLabel, period);
+        console.warn('Analytics load error:', e);
+      }
+    }
+
+    function showNoAnalyticsData(dateLabel, period) {
+      dateLabel.textContent = period === 'today' ? 'Today' : period === 'week' ? 'Last 7 Days' : 'Last 30 Days';
+      document.getElementById('an-avg-temp').textContent = '--';
+      document.getElementById('an-avg-hum').textContent  = '--';
+      document.getElementById('an-alerts').textContent   = '--';
+      document.getElementById('an-points').textContent   = '0';
+      document.getElementById('analytics-no-data').style.display = 'block';
+    }
+
+    /* ─────────────────────────────────────────
+       CALENDAR TAB
+    ───────────────────────────────────────── */
+    async function renderCalendar() {
+      const grid   = document.getElementById('cal-grid');
+      const label  = document.getElementById('cal-month-label');
+      const detail = document.getElementById('cal-detail');
+
+      const monthNames = ['January','February','March','April','May','June',
+                          'July','August','September','October','November','December'];
+      label.textContent = `${monthNames[calMonth]} ${calYear}`;
+
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;font-family:DM Mono,monospace;font-size:11px;color:var(--text-muted)">Loading…</div>';
+      detail.classList.remove('visible');
+
+      // Fetch logs if not cached
+      if (!logsCache) {
+        try {
+          const snap = await get(logsRef);
+          logsCache = snap.val() || {};
+        } catch (e) {
+          logsCache = {};
+        }
+      }
+
+      // Build daily averages
+      const dailyAvg = {};
+      if (logsCache) {
+        Object.keys(logsCache).forEach(dateKey => {
+          const dayData = logsCache[dateKey];
+          if (!dayData) return;
+          let temps = [];
+          Object.values(dayData).forEach(entry => {
+            if (entry && entry.temp != null) temps.push(parseFloat(entry.temp));
+          });
+          if (temps.length > 0) {
+            dailyAvg[dateKey] = temps.reduce((a,b)=>a+b,0)/temps.length;
+          }
+        });
+      }
+
+      // Build grid
+      const firstDay = new Date(calYear, calMonth, 1).getDay();
+      const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+      const todayDate = new Date();
+      const todayKey = `${todayDate.getFullYear()}-${String(todayDate.getMonth()+1).padStart(2,'0')}-${String(todayDate.getDate()).padStart(2,'0')}`;
+
+      grid.innerHTML = '';
+
+      // Empty cells
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-cell empty';
+        grid.appendChild(empty);
+      }
+
+      // Day cells
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateKey = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const avgTemp  = dailyAvg[dateKey] !== undefined ? dailyAvg[dateKey] : null;
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell' + (avgTemp === null ? ' no-data' : '') + (dateKey === todayKey ? ' today' : '');
+        cell.style.background = tempToColor(avgTemp);
+
+        const dateEl = document.createElement('div');
+        dateEl.className = 'cal-date';
+        dateEl.textContent = d;
+        cell.appendChild(dateEl);
+
+        if (avgTemp !== null) {
+          const tempEl = document.createElement('div');
+          tempEl.className = 'cal-temp';
+          tempEl.textContent = avgTemp.toFixed(0) + '°';
+          cell.appendChild(tempEl);
+        }
+
+        cell.addEventListener('click', () => showCalDetail(dateKey, avgTemp));
+        grid.appendChild(cell);
+      }
+    }
+
+    function showCalDetail(dateKey, avgTemp) {
+      const detail = document.getElementById('cal-detail');
+      const dateEl = document.getElementById('cal-detail-date');
+      const statsEl = document.getElementById('cal-detail-stats');
+
+      const d = new Date(dateKey + 'T00:00:00');
+      dateEl.textContent = d.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+
+      const dayData = logsCache && logsCache[dateKey];
+      if (!dayData) {
+        statsEl.innerHTML = '<div style="padding:20px;font-family:DM Mono,monospace;font-size:11px;color:var(--text-muted);text-align:center">No data logged for this day.</div>';
+      } else {
+        let temps = [], hums = [];
+        Object.values(dayData).forEach(entry => {
+          if (entry && entry.temp != null) { temps.push(parseFloat(entry.temp)); hums.push(parseFloat(entry.hum)); }
+        });
+
+        const avg  = t => (t.reduce((a,b)=>a+b,0)/t.length).toFixed(1);
+        const stat = (label, value) =>
+          `<div class="cal-stat"><div class="cal-stat-label">${label}</div><div class="cal-stat-value">${value}</div></div>`;
+
+        statsEl.innerHTML = [
+          stat('Avg Temp', avg(temps) + '°C'),
+          stat('Max Temp', Math.max(...temps).toFixed(1) + '°C'),
+          stat('Min Temp', Math.min(...temps).toFixed(1) + '°C'),
+          stat('Avg Humidity', avg(hums) + '%'),
+          stat('Max Humidity', Math.max(...hums).toFixed(1) + '%'),
+          stat('Data Points', temps.length)
+        ].join('');
+      }
+
+      detail.classList.add('visible');
+    }
+
+    document.getElementById('cal-close-btn').addEventListener('click', () => {
+      document.getElementById('cal-detail').classList.remove('visible');
+    });
+
+    document.getElementById('cal-prev').addEventListener('click', () => {
+      calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+      logsCache = null; renderCalendar();
+    });
+
+    document.getElementById('cal-next').addEventListener('click', () => {
+      calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+      logsCache = null; renderCalendar();
+    });
+
+    /* ─────────────────────────────────────────
+       ENVIRONMENT TAB
+    ───────────────────────────────────────── */
+    let owmApiKey = localStorage.getItem('owm_key') || '';
+    const apiKeyInput = document.getElementById('owm-api-key-input');
+    const apiKeySection = document.getElementById('api-key-section');
+
+    if (owmApiKey) {
+      apiKeyInput.value = owmApiKey;
+      apiKeySection.classList.add('hidden');
+    }
+
+    document.getElementById('owm-api-save').addEventListener('click', () => {
+      const val = apiKeyInput.value.trim();
+      if (val.length > 10) {
+        owmApiKey = val;
+        localStorage.setItem('owm_key', val);
+        apiKeySection.classList.add('hidden');
+      }
+    });
+
+    document.getElementById('env-grant-btn').addEventListener('click', async () => {
+      if (!owmApiKey) {
+        alert('Please enter your OpenWeatherMap API key first.');
+        return;
+      }
+      requestLocation();
+    });
+
+    async function requestLocation() {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.');
+        return;
+      }
+
+      document.getElementById('env-permission-banner').classList.add('hidden');
+      document.getElementById('env-loading').style.display = 'block';
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude: lat, longitude: lon } = pos.coords;
+          await fetchWeatherData(lat, lon);
+        },
+        (err) => {
+          document.getElementById('env-loading').style.display = 'none';
+          document.getElementById('env-permission-banner').classList.remove('hidden');
+          showError('Location error: ' + err.message);
+        }
+      );
+    }
+
+    async function fetchWeatherData(lat, lon) {
+      try {
+        const [weatherRes, aqiRes] = await Promise.all([
+          fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${owmApiKey}&units=metric`),
+          fetch(`http://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${owmApiKey}`)
+        ]);
+
+        const weather = await weatherRes.json();
+        const aqi     = await aqiRes.json();
+
+        document.getElementById('env-loading').style.display = 'none';
+        document.getElementById('env-data-panel').classList.add('visible');
+
+        // Location
+        document.getElementById('env-location-text').textContent =
+          `${weather.name || 'Your Location'}, ${weather.sys?.country || ''} · ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+
+        // Weather
+        const outsideTemp = weather.main.temp;
+        currentOutsideTemp = outsideTemp;
+        document.getElementById('env-temp-val').innerHTML =
+          `${outsideTemp.toFixed(1)}<span class="env-unit">°C</span>`;
+        document.getElementById('env-condition').textContent =
+          weather.weather?.[0]?.description ? weather.weather[0].description.charAt(0).toUpperCase() + weather.weather[0].description.slice(1) : '—';
+        document.getElementById('env-feels-like').textContent = weather.main.feels_like.toFixed(1) + '°C';
+        document.getElementById('env-hum-val').textContent    = weather.main.humidity + '%';
+        document.getElementById('env-wind').textContent       = weather.wind.speed + ' m/s';
+
+        // AQI
+        const aqiVal = aqi.list?.[0]?.main?.aqi || 0;
+        const aqiComponents = aqi.list?.[0]?.components || {};
+        const aqiLabels = ['', 'Good', 'Fair', 'Moderate', 'Poor', 'Very Poor'];
+        const aqiColors = ['', 'var(--aqi-good)', '#22d3a5', 'var(--aqi-moderate)', 'var(--aqi-poor)', 'var(--aqi-bad)'];
+        const aqiPct = Math.min(100, (aqiVal / 5) * 100);
+
+        document.getElementById('env-aqi-val').textContent    = aqiVal;
+        document.getElementById('env-aqi-val').style.color    = aqiColors[aqiVal] || 'var(--text-primary)';
+        document.getElementById('env-aqi-bar').style.width     = aqiPct + '%';
+        document.getElementById('env-aqi-bar').style.background= aqiColors[aqiVal] || 'var(--env-base)';
+        document.getElementById('env-aqi-cat').textContent     = aqiLabels[aqiVal] || '—';
+        document.getElementById('env-aqi-cat').style.color     = aqiColors[aqiVal] || 'var(--text-secondary)';
+        document.getElementById('env-pm25').textContent = (aqiComponents.pm2_5 || '--') + ' μg/m³';
+        document.getElementById('env-pm10').textContent = (aqiComponents.pm10  || '--') + ' μg/m³';
+        document.getElementById('env-co').textContent   = (aqiComponents.co    || '--') + ' μg/m³';
+
+        updateCompareCard();
+
+      } catch (e) {
+        document.getElementById('env-loading').style.display = 'none';
+        document.getElementById('env-permission-banner').classList.remove('hidden');
+        showError('Weather API error — check your API key and try again.');
+        console.error('Weather fetch error:', e);
+      }
+    }
+
+    function updateCompareCard() {
+      if (lastTemp === null || currentOutsideTemp === null) return;
+
+      document.getElementById('cmp-room').textContent    = lastTemp.toFixed(1) + '°C';
+      document.getElementById('cmp-outside').textContent = currentOutsideTemp.toFixed(1) + '°C';
+
+      const diff = lastTemp - currentOutsideTemp;
+      let insight = '';
+      if (Math.abs(diff) < 0.5) {
+        insight = '🔄 Room and outside temperatures are nearly identical.';
+      } else if (diff > 0) {
+        insight = `🔥 Room is warmer than outside by ${diff.toFixed(1)}°C. Consider ventilating.`;
+      } else {
+        insight = `❄️ Room is cooler than outside by ${Math.abs(diff).toFixed(1)}°C. AC may be on.`;
+      }
+      document.getElementById('cmp-insight').textContent = insight;
+    }
+
+    /* ─────────────────────────────────────────
+       REFRESH BAR ANIMATION
+    ───────────────────────────────────────── */
+    let barW = 0;
+    setInterval(() => {
+      barW = (barW + 6.66) % 100;
+      const bar = document.getElementById('refresh-bar');
+      if (bar) bar.style.width = barW + '%';
+    }, 133);
 
   </script>
 
