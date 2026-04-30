@@ -312,7 +312,7 @@
 
     @keyframes pulse-dot {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: 0.5; transform: scale(0.7); }
+      50%        { opacity: 0.5; transform: scale(0.7); }
     }
 
     .last-updated {
@@ -1318,60 +1318,6 @@
       color: var(--text-muted);
     }
 
-    /* OpenWeather key input */
-    .api-key-section {
-      background: rgba(255,193,7,0.05);
-      border: 1px solid rgba(255,193,7,0.15);
-      border-radius: var(--radius-inner);
-      padding: 14px 18px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .api-key-section.hidden { display: none; }
-
-    .api-key-note {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      color: #f59e0b;
-      letter-spacing: 0.06em;
-      flex: 1;
-    }
-
-    .api-key-input {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border-active);
-      border-radius: 8px;
-      padding: 6px 12px;
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--text-primary);
-      outline: none;
-      width: 220px;
-      transition: border-color 0.2s;
-    }
-
-    .api-key-input:focus { border-color: rgba(59,130,246,0.5); }
-
-    .api-key-save-btn {
-      background: rgba(59,130,246,0.15);
-      border: 1px solid rgba(59,130,246,0.3);
-      border-radius: 8px;
-      padding: 6px 14px;
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      color: var(--accent-blue);
-      cursor: pointer;
-      transition: all 0.2s;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .api-key-save-btn:hover { background: rgba(59,130,246,0.25); }
-
     /* ─────────────────────────────────────────────
        FOOTER
     ───────────────────────────────────────────── */
@@ -1766,20 +1712,13 @@
     <div id="tab-environment" class="tab-panel">
       <section class="env-section">
 
-        <!-- API Key input -->
-        <div class="api-key-section" id="api-key-section">
-          <div class="api-key-note">⚠ Enter your free OpenWeatherMap API key to enable weather + AQI data:</div>
-          <input type="text" class="api-key-input" id="owm-api-key-input" placeholder="paste-your-api-key-here" />
-          <button class="api-key-save-btn" id="owm-api-save">Save</button>
-        </div>
-
         <!-- Location permission banner -->
         <div class="env-permission-banner" id="env-permission-banner">
           <span class="env-perm-icon">🌍</span>
           <div class="env-perm-title">Enable Environment Monitoring</div>
           <div class="env-perm-sub">Grant location access to fetch real-time weather and air quality data for your area.</div>
           <button class="env-grant-btn" id="env-grant-btn">📍 Grant Location Access</button>
-          <div class="env-api-note">Uses OpenWeatherMap free API · No account required with API key</div>
+          <div class="env-api-note">Uses secure backend connection for weather data</div>
         </div>
 
         <!-- Loading state -->
@@ -2477,29 +2416,7 @@
     /* ─────────────────────────────────────────
        ENVIRONMENT TAB
     ───────────────────────────────────────── */
-    let owmApiKey = localStorage.getItem('owm_key') || '';
-    const apiKeyInput = document.getElementById('owm-api-key-input');
-    const apiKeySection = document.getElementById('api-key-section');
-
-    if (owmApiKey) {
-      apiKeyInput.value = owmApiKey;
-      apiKeySection.classList.add('hidden');
-    }
-
-    document.getElementById('owm-api-save').addEventListener('click', () => {
-      const val = apiKeyInput.value.trim();
-      if (val.length > 10) {
-        owmApiKey = val;
-        localStorage.setItem('owm_key', val);
-        apiKeySection.classList.add('hidden');
-      }
-    });
-
     document.getElementById('env-grant-btn').addEventListener('click', async () => {
-      if (!owmApiKey) {
-        alert('Please enter your OpenWeatherMap API key first.');
-        return;
-      }
       requestLocation();
     });
 
@@ -2527,13 +2444,12 @@
 
     async function fetchWeatherData(lat, lon) {
       try {
-        const [weatherRes, aqiRes] = await Promise.all([
-          fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${owmApiKey}&units=metric`),
-          fetch(`http://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${owmApiKey}`)
-        ]);
+        const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+        const data = await response.json();
 
-        const weather = await weatherRes.json();
-        const aqi     = await aqiRes.json();
+        // Assuming your backend returns a combined object like { weather: {...}, aqi: {...} }
+        const weather = data.weather || data;
+        const aqi     = data.aqi || { list: [{ main: { aqi: 0 }, components: {} }] };
 
         document.getElementById('env-loading').style.display = 'none';
         document.getElementById('env-data-panel').classList.add('visible');
@@ -2575,7 +2491,7 @@
       } catch (e) {
         document.getElementById('env-loading').style.display = 'none';
         document.getElementById('env-permission-banner').classList.remove('hidden');
-        showError('Weather API error — check your API key and try again.');
+        showError('Weather API error — failed to fetch from secure backend.');
         console.error('Weather fetch error:', e);
       }
     }
