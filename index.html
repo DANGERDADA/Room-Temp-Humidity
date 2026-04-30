@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Room Monitor — Live Environment</title>
+
+  <!-- Fonts: Rajdhani (display) + DM Mono (data) + Outfit (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ─────────────────────────────────────────────
+       DESIGN TOKENS
+    ───────────────────────────────────────────── */
+    :root {
+      --bg-base:        #080c14;
+      --bg-surface:     #0d1420;
+      --bg-card:        rgba(13, 20, 36, 0.72);
+      --bg-card-hover:  rgba(16, 25, 46, 0.88);
+      --border:         rgba(255, 255, 255, 0.07);
+      --border-active:  rgba(255, 255, 255, 0.14);
+
+      /* Temperature accent */
+      --temp-base:      #ff6b35;
+      --temp-mid:       #ff9a3c;
+      --temp-glow:      rgba(255, 107, 53, 0.35);
+      --temp-glow-soft: rgba(255, 107, 53, 0.10);
+
+      /* Humidity accent */
+      --hum-base:       #00c6ff;
+      --hum-mid:        #0072ff;
+      --hum-glow:       rgba(0, 198, 255, 0.35);
+      --hum-glow-soft:  rgba(0, 198, 255, 0.10);
+
+      /* Neutral text */
+      --text-primary:   #eef2ff;
+      --text-secondary: #8892aa;
+      --text-muted:     #4a5568;
+
+      /* Live indicator */
+      --live-green:     #22d3a5;
+
+      --radius-card:    22px;
+      --radius-inner:   12px;
+      --shadow-card:    0 8px 40px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset;
+    }
+
+    /* ─────────────────────────────────────────────
+       RESET & BASE
+    ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── Noise texture overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.6;
+    }
+
+    /* ── Radial ambient light ── */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 500px;
+      background: radial-gradient(ellipse at center,
+        rgba(0, 72, 255, 0.08) 0%,
+        rgba(100, 0, 255, 0.04) 50%,
+        transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Grid scanlines ── */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.06) 2px,
+        rgba(0,0,0,0.06) 4px
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─────────────────────────────────────────────
+       LAYOUT WRAPPER
+    ───────────────────────────────────────────── */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 clamp(16px, 4vw, 40px);
+    }
+
+    /* ─────────────────────────────────────────────
+       HEADER
+    ───────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: clamp(20px, 4vw, 40px) 0 clamp(16px, 3vw, 28px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1e3a5f 0%, #0d1f3c 100%);
+      border: 1px solid var(--border-active);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 20px rgba(0, 100, 255, 0.15);
+    }
+
+    .brand-text h1 {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: clamp(20px, 3vw, 26px);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #eef2ff 40%, #8ba7d0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+    }
+
+    .brand-text p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 400;
+      margin-top: 1px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* Live status badge */
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(34, 211, 165, 0.08);
+      border: 1px solid rgba(34, 211, 165, 0.22);
+      border-radius: 40px;
+      padding: 6px 14px 6px 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--live-green);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--live-green);
+      animation: pulse-dot 2s ease-in-out infinite;
+      box-shadow: 0 0 6px var(--live-green);
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.7); }
+    }
+
+    /* Last updated timestamp */
+    .last-updated {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+    }
+
+    /* ─────────────────────────────────────────────
+       SECTION LABEL
+    ───────────────────────────────────────────── */
+    .section-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    /* ─────────────────────────────────────────────
+       MAIN — HERO CARDS
+    ───────────────────────────────────────────── */
+    .hero-section {
+      margin-top: clamp(24px, 4vw, 44px);
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+      gap: clamp(14px, 2.5vw, 24px);
+    }
+
+    /* ── Glass card base ── */
+    .metric-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: clamp(24px, 3.5vw, 36px);
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                  border-color 0.3s ease,
+                  box-shadow 0.35s ease;
+      cursor: default;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-6px) scale(1.01);
+      border-color: var(--border-active);
+    }
+
+    /* ── Card: corner accent bar ── */
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      border-radius: var(--radius-card) var(--radius-card) 0 0;
+    }
+
+    .card-temp::before   { background: linear-gradient(90deg, var(--temp-base), var(--temp-mid), transparent); }
+    .card-humid::before  { background: linear-gradient(90deg, var(--hum-base), var(--hum-mid), transparent); }
+
+    /* ── Card inner glow bg ── */
+    .metric-card::after {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -10%;
+      width: 60%;
+      height: 80%;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .card-temp::after  { background: var(--temp-glow-soft); }
+    .card-humid::after { background: var(--hum-glow-soft); }
+
+    .metric-card:hover.card-temp  { box-shadow: var(--shadow-card), 0 0 60px var(--temp-glow); }
+    .metric-card:hover.card-humid { box-shadow: var(--shadow-card), 0 0 60px var(--hum-glow); }
+
+    /* ── Card layout ── */
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: clamp(20px, 3vw, 32px);
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-meta-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .card-icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      transition: transform 0.3s ease;
+    }
+
+    .metric-card:hover .card-icon-wrap {
+      transform: rotate(8deg) scale(1.1);
+    }
+
+    .card-temp .card-icon-wrap  { background: rgba(255,107,53,0.14); box-shadow: 0 0 20px rgba(255,107,53,0.2); }
+    .card-humid .card-icon-wrap { background: rgba(0,198,255,0.12);  box-shadow: 0 0 20px rgba(0,198,255,0.18); }
+
+    /* ── Value display ── */
+    .card-value-block {
+      position: relative;
+      z-index: 1;
+    }
+
+    .value-number {
+      font-family: 'DM Mono', monospace;
+      font-size: clamp(52px, 9vw, 80px);
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    .value-number.updating {
+      opacity: 0.4;
+      transform: scale(0.97);
+    }
+
+    .card-temp  .value-number { color: var(--temp-base);
+      text-shadow: 0 0 40px rgba(255,107,53,0.5), 0 0 80px rgba(255,107,53,0.2); }
+    .card-humid .value-number { color: var(--hum-base);
+      text-shadow: 0 0 40px rgba(0,198,255,0.5),  0 0 80px rgba(0,198,255,0.2); }
+
+    .value-unit {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: clamp(22px, 3.5vw, 28px);
+      font-weight: 600;
+      vertical-align: super;
+      opacity: 0.65;
+      margin-left: 4px;
+    }
+
+    .value-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+      letter-spacing: 0.06em;
+      margin-top: 8px;
+      font-weight: 400;
+    }
+
+    /* ── Status chip ── */
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 16px;
+      padding: 4px 10px;
+      border-radius: 30px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+    }
+
+    .chip-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+    .card-temp  .status-chip { background: rgba(255,107,53,0.12); color: var(--temp-mid); border: 1px solid rgba(255,107,53,0.2); }
+    .card-humid .status-chip { background: rgba(0,198,255,0.10);  color: var(--hum-base);  border: 1px solid rgba(0,198,255,0.18); }
+    .card-temp  .chip-dot    { background: var(--temp-mid); }
+    .card-humid .chip-dot    { background: var(--hum-base); }
+
+    /* ─────────────────────────────────────────────
+       CHART SECTION
+    ───────────────────────────────────────────── */
+    .charts-section {
+      margin-top: clamp(28px, 4vw, 48px);
+      margin-bottom: clamp(32px, 5vw, 60px);
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+      gap: clamp(14px, 2.5vw, 24px);
+    }
+
+    .chart-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: clamp(20px, 3vw, 30px);
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    .chart-card:hover {
+      border-color: var(--border-active);
+      transform: translateY(-3px);
+    }
+
+    .chart-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+    }
+
+    .chart-temp::before  { background: linear-gradient(90deg, var(--temp-base), transparent); }
+    .chart-humid::before { background: linear-gradient(90deg, var(--hum-base), transparent); }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .chart-title-wrap { display: flex; align-items: center; gap: 10px; }
+
+    .chart-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+
+    .chart-temp  .chart-dot { background: var(--temp-base); box-shadow: 0 0 8px var(--temp-base); }
+    .chart-humid .chart-dot { background: var(--hum-base);  box-shadow: 0 0 8px var(--hum-base); }
+
+    .chart-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    .chart-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      letter-spacing: 0.06em;
+    }
+
+    .chart-temp  .chart-badge { background: rgba(255,107,53,0.12); color: var(--temp-mid); border: 1px solid rgba(255,107,53,0.2); }
+    .chart-humid .chart-badge { background: rgba(0,198,255,0.10);  color: var(--hum-base);  border: 1px solid rgba(0,198,255,0.18); }
+
+    .chart-canvas-wrap {
+      height: 180px;
+      position: relative;
+    }
+
+    /* ─────────────────────────────────────────────
+       STATS ROW
+    ───────────────────────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+      gap: clamp(10px, 2vw, 16px);
+      margin-top: clamp(14px, 2.5vw, 24px);
+    }
+
+    .stat-box {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-inner);
+      padding: 14px 16px;
+      text-align: center;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .stat-box:hover {
+      background: rgba(255,255,255,0.045);
+      border-color: var(--border-active);
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: 'DM Mono', monospace;
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text-primary);
+    }
+
+    /* ─────────────────────────────────────────────
+       LOADING OVERLAY
+    ───────────────────────────────────────────── */
+    #loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-base);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      gap: 20px;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+
+    #loading-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .loader-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .loader-spinner {
+      width: 44px;
+      height: 44px;
+      border: 2px solid rgba(255,255,255,0.08);
+      border-top-color: var(--hum-base);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      animation: blink 1.4s step-end infinite;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ─────────────────────────────────────────────
+       ERROR BANNER
+    ───────────────────────────────────────────── */
+    #error-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 60, 80, 0.08);
+      border: 1px solid rgba(255, 60, 80, 0.22);
+      border-radius: var(--radius-inner);
+      padding: 12px 16px;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #ff6b7a;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.04em;
+    }
+
+    #error-banner.visible { display: flex; }
+
+    /* ─────────────────────────────────────────────
+       FADE-IN ANIMATION ON LOAD
+    ───────────────────────────────────────────── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .fade-in:nth-child(1) { animation-delay: 0.1s; }
+    .fade-in:nth-child(2) { animation-delay: 0.22s; }
+    .fade-in:nth-child(3) { animation-delay: 0.34s; }
+    .fade-in:nth-child(4) { animation-delay: 0.46s; }
+
+    @keyframes fadeInUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─────────────────────────────────────────────
+       REFRESH PROGRESS
+    ───────────────────────────────────────────── */
+    .refresh-bar-wrap {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      z-index: 500;
+    }
+
+    .refresh-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--hum-base), var(--temp-base));
+      width: 0%;
+      transition: width 0.15s linear;
+    }
+
+    /* ─────────────────────────────────────────────
+       FOOTER
+    ───────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 20px 0;
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    footer span {
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+    }
+
+    footer .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .channel-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ─────────────────────────────────────────────
+       RESPONSIVE TWEAKS
+    ───────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .header-right { gap: 10px; }
+      .last-updated { display: none; }
+      .chart-canvas-wrap { height: 150px; }
+    }
+
+    @media (min-width: 1024px) {
+      .cards-grid  { grid-template-columns: 1fr 1fr; }
+      .charts-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Scanlines ── -->
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <!-- ── Loading Overlay ── -->
+  <div id="loading-overlay">
+    <div class="loader-spinner"></div>
+    <div class="loader-title">Room Monitor</div>
+    <div class="loader-sub">Connecting to sensors_</div>
+  </div>
+
+  <!-- ── Refresh Progress Bar ── -->
+  <div class="refresh-bar-wrap">
+    <div class="refresh-bar" id="refresh-bar"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PAGE
+  ══════════════════════════════════════════ -->
+  <div class="wrapper">
+
+    <!-- HEADER -->
+    <header class="fade-in">
+      <div class="header-brand">
+        <div class="brand-icon">🌡️</div>
+        <div class="brand-text">
+          <h1>Room Monitor</h1>
+          <p>Live Environment Data</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="last-updated" id="last-updated">—</span>
+        <div class="live-badge" id="live-badge">
+          <span class="live-dot"></span>
+          Live
+        </div>
+      </div>
+    </header>
+
+    <!-- ERROR BANNER -->
+    <div id="error-banner">
+      <span>⚠</span>
+      <span id="error-msg">Unable to fetch sensor data. Retrying…</span>
+    </div>
+
+    <!-- ── HERO CARDS ── -->
+    <section class="hero-section">
+      <p class="section-label fade-in">Current Readings</p>
+
+      <div class="cards-grid">
+
+        <!-- Temperature Card -->
+        <div class="metric-card card-temp fade-in">
+          <div class="card-header">
+            <div>
+              <div class="card-meta-label">Temperature</div>
+            </div>
+            <div class="card-icon-wrap">🌡️</div>
+          </div>
+          <div class="card-value-block">
+            <div class="value-number" id="temp-value">
+              --<span class="value-unit">°C</span>
+            </div>
+            <div class="value-sub">Ambient room temperature</div>
+            <div class="status-chip">
+              <span class="chip-dot"></span>
+              <span id="temp-status">Waiting…</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Humidity Card -->
+        <div class="metric-card card-humid fade-in">
+          <div class="card-header">
+            <div>
+              <div class="card-meta-label">Humidity</div>
+            </div>
+            <div class="card-icon-wrap">💧</div>
+          </div>
+          <div class="card-value-block">
+            <div class="value-number" id="hum-value">
+              --<span class="value-unit">%</span>
+            </div>
+            <div class="value-sub">Relative air humidity</div>
+            <div class="status-chip">
+              <span class="chip-dot"></span>
+              <span id="hum-status">Waiting…</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── STATS ROW ── -->
+    <div class="stats-row" id="stats-row" style="margin-top:clamp(14px,2.5vw,24px)">
+      <div class="stat-box fade-in">
+        <div class="stat-label">Temp High (session)</div>
+        <div class="stat-value" id="stat-tmax">--</div>
+      </div>
+      <div class="stat-box fade-in">
+        <div class="stat-label">Temp Low (session)</div>
+        <div class="stat-value" id="stat-tmin">--</div>
+      </div>
+      <div class="stat-box fade-in">
+        <div class="stat-label">Hum High (session)</div>
+        <div class="stat-value" id="stat-hmax">--</div>
+      </div>
+      <div class="stat-box fade-in">
+        <div class="stat-label">Hum Low (session)</div>
+        <div class="stat-value" id="stat-hmin">--</div>
+      </div>
+      <div class="stat-box fade-in">
+        <div class="stat-label">Data Points</div>
+        <div class="stat-value" id="stat-count">--</div>
+      </div>
+    </div>
+
+    <!-- ── CHARTS ── -->
+    <section class="charts-section">
+      <p class="section-label fade-in">Historical Trend (last 30 readings)</p>
+
+      <div class="charts-grid">
+
+        <!-- Temperature Chart -->
+        <div class="chart-card chart-temp fade-in">
+          <div class="chart-header">
+            <div class="chart-title-wrap">
+              <span class="chart-dot"></span>
+              <span class="chart-title">Temperature</span>
+            </div>
+            <span class="chart-badge">°C</span>
+          </div>
+          <div class="chart-canvas-wrap">
+            <canvas id="chart-temp"></canvas>
+          </div>
+        </div>
+
+        <!-- Humidity Chart -->
+        <div class="chart-card chart-humid fade-in">
+          <div class="chart-header">
+            <div class="chart-title-wrap">
+              <span class="chart-dot"></span>
+              <span class="chart-title">Humidity</span>
+            </div>
+            <span class="chart-badge">%</span>
+          </div>
+          <div class="chart-canvas-wrap">
+            <canvas id="chart-hum"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <span>Room Monitor &mdash; IoT Dashboard</span>
+      <div class="footer-right">
+        <span class="channel-tag">CH #3364598</span>
+        <span>Auto-refresh 5s</span>
+      </div>
+    </footer>
+
+  </div><!-- /wrapper -->
+
+
+  <!-- ══════════════════════════════════════════
+       JAVASCRIPT
+  ══════════════════════════════════════════ -->
+  <script>
+    /* ─────────────────────────────────────────
+       CONFIG
+    ───────────────────────────────────────── */
+    const API_LAST  = 'https://api.thingspeak.com/channels/3364598/feeds/last.json';
+    const API_HIST  = 'https://api.thingspeak.com/channels/3364598/feeds.json?results=30';
+    const REFRESH_MS = 5000;
+
+    /* ─────────────────────────────────────────
+       STATE
+    ───────────────────────────────────────── */
+    let chartTemp = null;
+    let chartHum  = null;
+    let sessionTMax = -Infinity, sessionTMin = Infinity;
+    let sessionHMax = -Infinity, sessionHMin = Infinity;
+    let dataCount = 0;
+    let firstLoad = true;
+    let refreshTimer = null;
+    let progressTimer = null;
+    let progressStart = null;
+
+    /* ─────────────────────────────────────────
+       DOM REFS
+    ───────────────────────────────────────── */
+    const elTempVal    = document.getElementById('temp-value');
+    const elHumVal     = document.getElementById('hum-value');
+    const elTempStatus = document.getElementById('temp-status');
+    const elHumStatus  = document.getElementById('hum-status');
+    const elLastUpd    = document.getElementById('last-updated');
+    const elErrBanner  = document.getElementById('error-banner');
+    const elErrMsg     = document.getElementById('error-msg');
+    const elLoading    = document.getElementById('loading-overlay');
+    const elBar        = document.getElementById('refresh-bar');
+    const elStatTMax   = document.getElementById('stat-tmax');
+    const elStatTMin   = document.getElementById('stat-tmin');
+    const elStatHMax   = document.getElementById('stat-hmax');
+    const elStatHMin   = document.getElementById('stat-hmin');
+    const elStatCount  = document.getElementById('stat-count');
+
+    /* ─────────────────────────────────────────
+       CHART FACTORY — shared config
+    ───────────────────────────────────────── */
+    function buildChart(canvasId, color, gradientEnd) {
+      const ctx = document.getElementById(canvasId).getContext('2d');
+
+      /* vertical gradient fill */
+      const gradient = ctx.createLinearGradient(0, 0, 0, 180);
+      gradient.addColorStop(0,   color.replace(')', ', 0.28)').replace('rgb', 'rgba'));
+      gradient.addColorStop(0.7, color.replace(')', ', 0.04)').replace('rgb', 'rgba'));
+      gradient.addColorStop(1,   'rgba(0,0,0,0)');
+
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            data: [],
+            borderColor: color,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointHoverBackgroundColor: color,
+            pointHoverBorderColor: '#0d1420',
+            pointHoverBorderWidth: 2,
+            fill: true,
+            backgroundColor: gradient,
+            tension: 0.42,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 600, easing: 'easeInOutCubic' },
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(13,20,36,0.95)',
+              borderColor: 'rgba(255,255,255,0.1)',
+              borderWidth: 1,
+              titleFont: { family: 'DM Mono', size: 10 },
+              bodyFont:  { family: 'DM Mono', size: 13 },
+              padding: 10,
+              callbacks: {
+                label: ctx => `  ${ctx.parsed.y.toFixed(1)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              display: false,
+            },
+            y: {
+              grid: {
+                color: 'rgba(255,255,255,0.045)',
+                drawBorder: false,
+              },
+              ticks: {
+                font: { family: 'DM Mono', size: 10 },
+                color: '#4a5568',
+                maxTicksLimit: 5,
+                padding: 8,
+              },
+              border: { display: false },
+            }
+          }
+        }
+      });
+    }
+
+    /* ─────────────────────────────────────────
+       INIT CHARTS
+    ───────────────────────────────────────── */
+    chartTemp = buildChart('chart-temp', 'rgb(255,107,53)', 'rgb(255,154,60)');
+    chartHum  = buildChart('chart-hum',  'rgb(0,198,255)',  'rgb(0,114,255)');
+
+    /* ─────────────────────────────────────────
+       TEMPERATURE STATUS LABEL
+    ───────────────────────────────────────── */
+    function tempLabel(t) {
+      if (t < 18)  return '🧊 Cold';
+      if (t < 24)  return '✅ Comfortable';
+      if (t < 28)  return '🌤 Warm';
+      if (t < 33)  return '🔥 Hot';
+      return '🌋 Very Hot';
+    }
+
+    function humLabel(h) {
+      if (h < 30)  return '🏜 Very Dry';
+      if (h < 45)  return '✅ Dry-Comfortable';
+      if (h < 60)  return '✅ Comfortable';
+      if (h < 75)  return '💦 Humid';
+      return '🌊 Very Humid';
+    }
+
+    /* ─────────────────────────────────────────
+       ANIMATE VALUE UPDATE
+    ───────────────────────────────────────── */
+    function setValueAnimated(el, newHTML) {
+      el.classList.add('updating');
+      setTimeout(() => {
+        el.innerHTML = newHTML;
+        el.classList.remove('updating');
+      }, 220);
+    }
+
+    /* ─────────────────────────────────────────
+       FETCH LATEST (live reading)
+    ───────────────────────────────────────── */
+    async function fetchLatest() {
+      try {
+        const res  = await fetch(API_LAST, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        const temp = parseFloat(data.field1);
+        const hum  = parseFloat(data.field2);
+
+        /* Update hero cards */
+        const tDisplay = isNaN(temp) ? '--' : temp.toFixed(1);
+        const hDisplay = isNaN(hum)  ? '--' : hum.toFixed(1);
+
+        setValueAnimated(elTempVal, `${tDisplay}<span class="value-unit">°C</span>`);
+        setValueAnimated(elHumVal,  `${hDisplay}<span class="value-unit">%</span>`);
+
+        elTempStatus.textContent = isNaN(temp) ? 'No data' : tempLabel(temp);
+        elHumStatus.textContent  = isNaN(hum)  ? 'No data' : humLabel(hum);
+
+        /* Session highs/lows */
+        if (!isNaN(temp)) {
+          if (temp > sessionTMax) { sessionTMax = temp; elStatTMax.textContent = temp.toFixed(1) + '°C'; }
+          if (temp < sessionTMin) { sessionTMin = temp; elStatTMin.textContent = temp.toFixed(1) + '°C'; }
+        }
+        if (!isNaN(hum)) {
+          if (hum > sessionHMax) { sessionHMax = hum; elStatHMax.textContent = hum.toFixed(1) + '%'; }
+          if (hum < sessionHMin) { sessionHMin = hum; elStatHMin.textContent = hum.toFixed(1) + '%'; }
+        }
+
+        /* Timestamp */
+        if (data.created_at) {
+          const d = new Date(data.created_at);
+          elLastUpd.textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        }
+
+        hideError();
+
+      } catch(e) {
+        showError('Sensor unreachable — ' + e.message);
+      }
+    }
+
+    /* ─────────────────────────────────────────
+       FETCH HISTORY (charts)
+    ───────────────────────────────────────── */
+    async function fetchHistory() {
+      try {
+        const res  = await fetch(API_HIST, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const feeds = data.feeds || [];
+
+        const labels  = feeds.map(f => {
+          const d = new Date(f.created_at);
+          return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        });
+        const temps   = feeds.map(f => parseFloat(f.field1) || null);
+        const hums    = feeds.map(f => parseFloat(f.field2) || null);
+
+        /* Update charts */
+        chartTemp.data.labels           = labels;
+        chartTemp.data.datasets[0].data = temps;
+        chartTemp.update();
+
+        chartHum.data.labels            = labels;
+        chartHum.data.datasets[0].data  = hums;
+        chartHum.update();
+
+        dataCount = feeds.length;
+        elStatCount.textContent = dataCount;
+
+      } catch(e) {
+        /* Non-critical, silently skip chart update */
+      }
+    }
+
+    /* ─────────────────────────────────────────
+       ERROR HELPERS
+    ───────────────────────────────────────── */
+    function showError(msg) {
+      elErrBanner.classList.add('visible');
+      elErrMsg.textContent = msg;
+    }
+
+    function hideError() {
+      elErrBanner.classList.remove('visible');
+    }
+
+    /* ─────────────────────────────────────────
+       PROGRESS BAR
+    ───────────────────────────────────────── */
+    function startProgressBar() {
+      progressStart = Date.now();
+      elBar.style.transition = 'none';
+      elBar.style.width = '0%';
+
+      /* Re-enable transition after brief paint */
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          elBar.style.transition = `width ${REFRESH_MS}ms linear`;
+          elBar.style.width = '100%';
+        });
+      });
+    }
+
+    /* ─────────────────────────────────────────
+       MASTER REFRESH
+    ───────────────────────────────────────── */
+    async function refresh() {
+      await Promise.all([fetchLatest(), fetchHistory()]);
+
+      if (firstLoad) {
+        firstLoad = false;
+        elLoading.classList.add('hidden');
+      }
+
+      startProgressBar();
+    }
+
+    /* ─────────────────────────────────────────
+       BOOTSTRAP
+    ───────────────────────────────────────── */
+    (async () => {
+      await refresh();
+      setInterval(refresh, REFRESH_MS);
+    })();
+  </script>
+
+</body>
+</html>
