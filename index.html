@@ -2039,7 +2039,7 @@
     elBuzzerBtn.addEventListener('touchcancel',buzzerOff, {passive: false});
 
     /* ─────────────────────────────────────────
-       SMART INSIGHTS
+       SMART INSIGHTS & INITIALIZATION
     ───────────────────────────────────────── */
     function updateInsights() {
       if (tempReadings.length < 3) return;
@@ -2082,74 +2082,125 @@
       cards[0].querySelector('.insight-icon').textContent = maxT > 35 ? '🌋' : maxT > 28 ? '🔥' : '🌤';
     }
 
+    async function loadTodayData() {
+      const today = todayStr();
+      try {
+        const snapshot = await get(ref(db, `logs/${today}`));
+        if (!snapshot.exists()) return;
+        
+        const data = snapshot.val();
+        const sortedTimes = Object.keys(data).sort();
+        
+        sortedTimes.forEach(time => {
+          const entry = data[time];
+          if (entry && entry.temp != null && entry.hum != null) {
+            const t = parseFloat(entry.temp);
+            const h = parseFloat(entry.hum);
+            
+            tempReadings.push(t);
+            humReadings.push(h);
+            timeReadings.push(time);
+            
+            if (t > sessionTMax) sessionTMax = t;
+            if (t < sessionTMin) sessionTMin = t;
+            if (h > sessionHMax) sessionHMax = h;
+            if (h < sessionHMin) sessionHMin = h;
+            dataCount++;
+          }
+        });
+        
+        // Update Stats
+        if (sessionTMax !== -Infinity) elStatTMax.textContent = sessionTMax.toFixed(1) + '°C';
+        if (sessionTMin !== Infinity) elStatTMin.textContent = sessionTMin.toFixed(1) + '°C';
+        if (sessionHMax !== -Infinity) elStatHMax.textContent = sessionHMax.toFixed(1) + '%';
+        if (sessionHMin !== Infinity) elStatHMin.textContent = sessionHMin.toFixed(1) + '%';
+        elStatCount.textContent = dataCount;
+        
+        // Update Charts (last 30)
+        chartTemp.data.labels = timeReadings.slice(-30);
+        chartTemp.data.datasets[0].data = tempReadings.slice(-30);
+        chartTemp.update();
+        
+        chartHum.data.labels = timeReadings.slice(-30);
+        chartHum.data.datasets[0].data = humReadings.slice(-30);
+        chartHum.update();
+        
+        updateInsights();
+      } catch (e) {
+        console.warn("Could not load historical data:", e);
+      }
+    }
+
     /* ─────────────────────────────────────────
        FIREBASE LISTENERS (LIVE TAB)
     ───────────────────────────────────────── */
-    onValue(tempRef, (snapshot) => {
-      const val = snapshot.val();
-      if (val !== null) {
-        const temp = parseFloat(val);
-        const tDisp = isNaN(temp) ? '--' : temp.toFixed(1);
+    // Initialize data then attach listeners to ensure sequential load
+    loadTodayData().then(() => {
+      onValue(tempRef, (snapshot) => {
+        const val = snapshot.val();
+        if (val !== null) {
+          const temp = parseFloat(val);
+          const tDisp = isNaN(temp) ? '--' : temp.toFixed(1);
 
-        setValueAnimated(elTempVal, `${tDisp}<span class="value-unit">°C</span>`);
-        elTempStatus.textContent = isNaN(temp) ? 'No data' : tempLabel(temp);
+          setValueAnimated(elTempVal, `${tDisp}<span class="value-unit">°C</span>`);
+          elTempStatus.textContent = isNaN(temp) ? 'No data' : tempLabel(temp);
 
-        if (!isNaN(temp)) {
-          lastTemp = temp;
-          const now = new Date();
-          const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-          tempReadings.push(temp); timeReadings.push(timeStr);
+          if (!isNaN(temp)) {
+            lastTemp = temp;
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            tempReadings.push(temp); timeReadings.push(timeStr);
 
-          if (temp > sessionTMax) { sessionTMax = temp; elStatTMax.textContent = temp.toFixed(1) + '°C'; }
-          if (temp < sessionTMin) { sessionTMin = temp; elStatTMin.textContent = temp.toFixed(1) + '°C'; }
+            if (temp > sessionTMax) { sessionTMax = temp; elStatTMax.textContent = temp.toFixed(1) + '°C'; }
+            if (temp < sessionTMin) { sessionTMin = temp; elStatTMin.textContent = temp.toFixed(1) + '°C'; }
 
-          chartTemp.data.labels.push(timeStr);
-          chartTemp.data.datasets[0].data.push(temp);
-          if (chartTemp.data.labels.length > 30) {
-            chartTemp.data.labels.shift();
-            chartTemp.data.datasets[0].data.shift();
+            chartTemp.data.labels.push(timeStr);
+            chartTemp.data.datasets[0].data.push(temp);
+            if (chartTemp.data.labels.length > 30) {
+              chartTemp.data.labels.shift();
+              chartTemp.data.datasets[0].data.shift();
+            }
+            chartTemp.update();
+
+            updateInsights();
+            updateCompareCard();
           }
-          chartTemp.update();
 
-          updateInsights();
-          updateCompareCard();
+          dataCount++; elStatCount.textContent = dataCount; hideError();
         }
+        checkFirstLoad();
+      }, err => showError('Firebase Error: ' + err.message));
 
-        dataCount++; elStatCount.textContent = dataCount; hideError();
-      }
-      checkFirstLoad();
-    }, err => showError('Firebase Error: ' + err.message));
+      onValue(humRef, (snapshot) => {
+        const val = snapshot.val();
+        if (val !== null) {
+          const hum = parseFloat(val);
+          const hDisp = isNaN(hum) ? '--' : hum.toFixed(1);
 
-    onValue(humRef, (snapshot) => {
-      const val = snapshot.val();
-      if (val !== null) {
-        const hum = parseFloat(val);
-        const hDisp = isNaN(hum) ? '--' : hum.toFixed(1);
+          setValueAnimated(elHumVal, `${hDisp}<span class="value-unit">%</span>`);
+          elHumStatus.textContent = isNaN(hum) ? 'No data' : humLabel(hum);
 
-        setValueAnimated(elHumVal, `${hDisp}<span class="value-unit">%</span>`);
-        elHumStatus.textContent = isNaN(hum) ? 'No data' : humLabel(hum);
+          if (!isNaN(hum)) {
+            lastHum = hum;
+            humReadings.push(hum);
 
-        if (!isNaN(hum)) {
-          lastHum = hum;
-          humReadings.push(hum);
+            if (hum > sessionHMax) { sessionHMax = hum; elStatHMax.textContent = hum.toFixed(1) + '%'; }
+            if (hum < sessionHMin) { sessionHMin = hum; elStatHMin.textContent = hum.toFixed(1) + '%'; }
 
-          if (hum > sessionHMax) { sessionHMax = hum; elStatHMax.textContent = hum.toFixed(1) + '%'; }
-          if (hum < sessionHMin) { sessionHMin = hum; elStatHMin.textContent = hum.toFixed(1) + '%'; }
-
-          chartHum.data.labels.push(new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
-          chartHum.data.datasets[0].data.push(hum);
-          if (chartHum.data.labels.length > 30) {
-            chartHum.data.labels.shift();
-            chartHum.data.datasets[0].data.shift();
+            chartHum.data.labels.push(new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+            chartHum.data.datasets[0].data.push(hum);
+            if (chartHum.data.labels.length > 30) {
+              chartHum.data.labels.shift();
+              chartHum.data.datasets[0].data.shift();
+            }
+            chartHum.update();
           }
-          chartHum.update();
+
+          dataCount++; elStatCount.textContent = dataCount; hideError();
         }
-
-        dataCount++; elStatCount.textContent = dataCount; hideError();
-      }
-      checkFirstLoad();
-    }, err => showError('Firebase Error: ' + err.message));
-
+        checkFirstLoad();
+      }, err => showError('Firebase Error: ' + err.message));
+    });
 
     /* ─────────────────────────────────────────
        TAB NAVIGATION
