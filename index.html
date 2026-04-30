@@ -181,6 +181,36 @@
       flex-wrap: wrap;
     }
 
+    /* Buzzer Button */
+    .buzzer-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 6px 14px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      outline: none;
+    }
+
+    .buzzer-btn:active, .buzzer-btn.active {
+      background: rgba(255, 107, 53, 0.15);
+      border-color: rgba(255, 107, 53, 0.3);
+      color: var(--temp-base);
+      transform: scale(0.96);
+      box-shadow: 0 0 15px rgba(255, 107, 53, 0.2);
+    }
+
     /* Live status badge */
     .live-badge {
       display: flex;
@@ -715,6 +745,7 @@
         </div>
       </div>
       <div class="header-right">
+        <button class="buzzer-btn" id="buzzer-btn">🔊 Hold to Buzz</button>
         <span class="last-updated" id="last-updated">—</span>
         <div class="live-badge" id="live-badge">
           <span class="live-dot"></span>
@@ -843,7 +874,6 @@
     <footer>
       <span>Room Monitor &mdash; IoT Dashboard</span>
       <div class="footer-right">
-        <span class="channel-tag">CH #3364598</span>
         <span>Auto-refresh 2s</span>
       </div>
     </footer>
@@ -856,7 +886,7 @@
   ══════════════════════════════════════════ -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
     /* ─────────────────────────────────────────
        STATE
@@ -884,6 +914,7 @@
     const elStatHMax   = document.getElementById('stat-hmax');
     const elStatHMin   = document.getElementById('stat-hmin');
     const elStatCount  = document.getElementById('stat-count');
+    const elBuzzerBtn  = document.getElementById('buzzer-btn');
 
     /* ─────────────────────────────────────────
        CHART FACTORY — shared config
@@ -1016,7 +1047,8 @@
     const db = getDatabase(app);
 
     const tempRef = ref(db, 'room/temp');
-    const humRef = ref(db, 'room/hum');
+    const humRef  = ref(db, 'room/hum');
+    const buzRef  = ref(db, 'room/buzzer');
 
     function checkFirstLoad() {
       if (firstLoad) {
@@ -1029,6 +1061,33 @@
       const now = new Date();
       elLastUpd.textContent = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
     }
+    
+    // Initialize real-time clock
+    updateTimestamp();
+    setInterval(updateTimestamp, 1000);
+
+    // Buzzer Control Logic
+    function buzzerOn(e) {
+      if (e && e.cancelable) e.preventDefault();
+      elBuzzerBtn.classList.add('active');
+      set(buzRef, 1).catch(error => showError('Buzzer Connection Error: ' + error.message));
+    }
+
+    function buzzerOff(e) {
+      if (e && e.cancelable) e.preventDefault();
+      elBuzzerBtn.classList.remove('active');
+      set(buzRef, 0).catch(error => showError('Buzzer Connection Error: ' + error.message));
+    }
+
+    // Mouse events
+    elBuzzerBtn.addEventListener('mousedown', buzzerOn);
+    elBuzzerBtn.addEventListener('mouseup', buzzerOff);
+    elBuzzerBtn.addEventListener('mouseleave', buzzerOff);
+
+    // Touch events
+    elBuzzerBtn.addEventListener('touchstart', buzzerOn, {passive: false});
+    elBuzzerBtn.addEventListener('touchend', buzzerOff, {passive: false});
+    elBuzzerBtn.addEventListener('touchcancel', buzzerOff, {passive: false});
 
     // Temperature Listener
     onValue(tempRef, (snapshot) => {
@@ -1056,7 +1115,6 @@
           chartTemp.update();
         }
 
-        updateTimestamp();
         dataCount++;
         elStatCount.textContent = dataCount;
         hideError();
@@ -1092,7 +1150,6 @@
           chartHum.update();
         }
 
-        updateTimestamp();
         dataCount++;
         elStatCount.textContent = dataCount;
         hideError();
