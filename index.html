@@ -2444,40 +2444,59 @@
 
     async function fetchWeatherData(lat, lon) {
       try {
+        // 1. Fetch from secure backend
         const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+        
+        // 2. Properly handle response status
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // 3. Parse JSON correctly
         const data = await response.json();
 
-        // Assuming your backend returns a combined object like { weather: {...}, aqi: {...} }
-        const weather = data.weather || data;
-        const aqi     = data.aqi || { list: [{ main: { aqi: 0 }, components: {} }] };
+        // Fallback for AQI in case backend only sends weather right now
+        const aqi = data.aqi || { list: [{ main: { aqi: 0 }, components: {} }] };
 
+        // Hide loading, show data panel
         document.getElementById('env-loading').style.display = 'none';
         document.getElementById('env-data-panel').classList.add('visible');
 
-        // Location
+        // Update Location (with fallbacks if backend strips these fields)
         document.getElementById('env-location-text').textContent =
-          `${weather.name || 'Your Location'}, ${weather.sys?.country || ''} · ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+          `${data.name || 'Your Location'}, ${data.sys?.country || ''} · ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
 
-        // Weather
-        const outsideTemp = weather.main.temp;
+        // 4. Use correct data fields for Weather
+        const outsideTemp = data.main.temp;
         currentOutsideTemp = outsideTemp;
+        
         document.getElementById('env-temp-val').innerHTML =
           `${outsideTemp.toFixed(1)}<span class="env-unit">°C</span>`;
-        document.getElementById('env-condition').textContent =
-          weather.weather?.[0]?.description ? weather.weather[0].description.charAt(0).toUpperCase() + weather.weather[0].description.slice(1) : '—';
-        document.getElementById('env-feels-like').textContent = weather.main.feels_like.toFixed(1) + '°C';
-        document.getElementById('env-hum-val').textContent    = weather.main.humidity + '%';
-        document.getElementById('env-wind').textContent       = weather.wind.speed + ' m/s';
+          
+        // Use weather[0].main (e.g., "Clear", "Rain")
+        const conditionText = data.weather?.[0]?.main || '—';
+        document.getElementById('env-condition').textContent = conditionText;
+        
+        // Fallback to actual temp if feels_like is missing from backend
+        const feelsLike = data.main?.feels_like !== undefined ? data.main.feels_like : outsideTemp;
+        document.getElementById('env-feels-like').textContent = feelsLike.toFixed(1) + '°C';
+        
+        // Use correct humidity field
+        document.getElementById('env-hum-val').textContent = data.main.humidity + '%';
+        
+        // Fallback for wind speed if missing
+        const windSpeed = data.wind?.speed !== undefined ? data.wind.speed : '--';
+        document.getElementById('env-wind').textContent = windSpeed + ' m/s';
 
-        // AQI
+        // AQI Logic
         const aqiVal = aqi.list?.[0]?.main?.aqi || 0;
         const aqiComponents = aqi.list?.[0]?.components || {};
         const aqiLabels = ['', 'Good', 'Fair', 'Moderate', 'Poor', 'Very Poor'];
         const aqiColors = ['', 'var(--aqi-good)', '#22d3a5', 'var(--aqi-moderate)', 'var(--aqi-poor)', 'var(--aqi-bad)'];
         const aqiPct = Math.min(100, (aqiVal / 5) * 100);
 
-        document.getElementById('env-aqi-val').textContent    = aqiVal;
-        document.getElementById('env-aqi-val').style.color    = aqiColors[aqiVal] || 'var(--text-primary)';
+        document.getElementById('env-aqi-val').textContent     = aqiVal;
+        document.getElementById('env-aqi-val').style.color     = aqiColors[aqiVal] || 'var(--text-primary)';
         document.getElementById('env-aqi-bar').style.width     = aqiPct + '%';
         document.getElementById('env-aqi-bar').style.background= aqiColors[aqiVal] || 'var(--env-base)';
         document.getElementById('env-aqi-cat').textContent     = aqiLabels[aqiVal] || '—';
