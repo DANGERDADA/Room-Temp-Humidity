@@ -854,13 +854,9 @@
   <!-- ══════════════════════════════════════════
        JAVASCRIPT
   ══════════════════════════════════════════ -->
-  <script>
-    /* ─────────────────────────────────────────
-       CONFIG
-    ───────────────────────────────────────── */
-    const API_LAST  = 'https://api.thingspeak.com/channels/3364598/feeds/last.json';
-    const API_HIST  = 'https://api.thingspeak.com/channels/3364598/feeds.json?results=30';
-    const REFRESH_MS = 5000;
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
     /* ─────────────────────────────────────────
        STATE
@@ -871,9 +867,6 @@
     let sessionHMax = -Infinity, sessionHMin = Infinity;
     let dataCount = 0;
     let firstLoad = true;
-    let refreshTimer = null;
-    let progressTimer = null;
-    let progressStart = null;
 
     /* ─────────────────────────────────────────
        DOM REFS
@@ -886,7 +879,6 @@
     const elErrBanner  = document.getElementById('error-banner');
     const elErrMsg     = document.getElementById('error-msg');
     const elLoading    = document.getElementById('loading-overlay');
-    const elBar        = document.getElementById('refresh-bar');
     const elStatTMax   = document.getElementById('stat-tmax');
     const elStatTMin   = document.getElementById('stat-tmin');
     const elStatHMax   = document.getElementById('stat-hmax');
@@ -971,7 +963,7 @@
     chartHum  = buildChart('chart-hum',  'rgb(0,198,255)',  'rgb(0,114,255)');
 
     /* ─────────────────────────────────────────
-       TEMPERATURE STATUS LABEL
+       TEMPERATURE & HUMIDITY STATUS LABELS
     ───────────────────────────────────────── */
     function tempLabel(t) {
       if (t < 18)  return '🧊 Cold';
@@ -1001,85 +993,6 @@
     }
 
     /* ─────────────────────────────────────────
-       FETCH LATEST (live reading)
-    ───────────────────────────────────────── */
-    async function fetchLatest() {
-      try {
-        const res  = await fetch(API_LAST, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        const temp = parseFloat(data.field1);
-        const hum  = parseFloat(data.field2);
-
-        /* Update hero cards */
-        const tDisplay = isNaN(temp) ? '--' : temp.toFixed(1);
-        const hDisplay = isNaN(hum)  ? '--' : hum.toFixed(1);
-
-        setValueAnimated(elTempVal, `${tDisplay}<span class="value-unit">°C</span>`);
-        setValueAnimated(elHumVal,  `${hDisplay}<span class="value-unit">%</span>`);
-
-        elTempStatus.textContent = isNaN(temp) ? 'No data' : tempLabel(temp);
-        elHumStatus.textContent  = isNaN(hum)  ? 'No data' : humLabel(hum);
-
-        /* Session highs/lows */
-        if (!isNaN(temp)) {
-          if (temp > sessionTMax) { sessionTMax = temp; elStatTMax.textContent = temp.toFixed(1) + '°C'; }
-          if (temp < sessionTMin) { sessionTMin = temp; elStatTMin.textContent = temp.toFixed(1) + '°C'; }
-        }
-        if (!isNaN(hum)) {
-          if (hum > sessionHMax) { sessionHMax = hum; elStatHMax.textContent = hum.toFixed(1) + '%'; }
-          if (hum < sessionHMin) { sessionHMin = hum; elStatHMin.textContent = hum.toFixed(1) + '%'; }
-        }
-
-        /* Timestamp */
-        if (data.created_at) {
-          const d = new Date(data.created_at);
-          elLastUpd.textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-        }
-
-        hideError();
-
-      } catch(e) {
-        showError('Sensor unreachable — ' + e.message);
-      }
-    }
-
-    /* ─────────────────────────────────────────
-       FETCH HISTORY (charts)
-    ───────────────────────────────────────── */
-    async function fetchHistory() {
-      try {
-        const res  = await fetch(API_HIST, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const feeds = data.feeds || [];
-
-        const labels  = feeds.map(f => {
-          const d = new Date(f.created_at);
-          return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        });
-        const temps   = feeds.map(f => parseFloat(f.field1) || null);
-        const hums    = feeds.map(f => parseFloat(f.field2) || null);
-
-        /* Update charts */
-        chartTemp.data.labels           = labels;
-        chartTemp.data.datasets[0].data = temps;
-        chartTemp.update();
-
-        chartHum.data.labels            = labels;
-        chartHum.data.datasets[0].data  = hums;
-        chartHum.update();
-
-        dataCount = feeds.length;
-        elStatCount.textContent = dataCount;
-
-      } catch(e) {
-        /* Non-critical, silently skip chart update */
-      }
-    }
-
-    /* ─────────────────────────────────────────
        ERROR HELPERS
     ───────────────────────────────────────── */
     function showError(msg) {
@@ -1092,43 +1005,103 @@
     }
 
     /* ─────────────────────────────────────────
-       PROGRESS BAR
+       FIREBASE INTEGRATION
     ───────────────────────────────────────── */
-    function startProgressBar() {
-      progressStart = Date.now();
-      elBar.style.transition = 'none';
-      elBar.style.width = '0%';
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNgZW_BVuzFlAfDwQiV3u3yjwFKsoeu9w",
+      databaseURL: "https://room-monitor-51054-default-rtdb.firebaseio.com"
+    };
 
-      /* Re-enable transition after brief paint */
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          elBar.style.transition = `width ${REFRESH_MS}ms linear`;
-          elBar.style.width = '100%';
-        });
-      });
-    }
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    /* ─────────────────────────────────────────
-       MASTER REFRESH
-    ───────────────────────────────────────── */
-    async function refresh() {
-      await Promise.all([fetchLatest(), fetchHistory()]);
+    const tempRef = ref(db, 'room/temp');
+    const humRef = ref(db, 'room/hum');
 
+    function checkFirstLoad() {
       if (firstLoad) {
         firstLoad = false;
         elLoading.classList.add('hidden');
       }
-
-      startProgressBar();
     }
 
-    /* ─────────────────────────────────────────
-       BOOTSTRAP
-    ───────────────────────────────────────── */
-    (async () => {
-      await refresh();
-      setInterval(refresh, REFRESH_MS);
-    })();
+    function updateTimestamp() {
+      const now = new Date();
+      elLastUpd.textContent = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    }
+
+    // Temperature Listener
+    onValue(tempRef, (snapshot) => {
+      const val = snapshot.val();
+      if (val !== null) {
+        const temp = parseFloat(val);
+        const tDisplay = isNaN(temp) ? '--' : temp.toFixed(1);
+
+        setValueAnimated(elTempVal, `${tDisplay}<span class="value-unit">°C</span>`);
+        elTempStatus.textContent = isNaN(temp) ? 'No data' : tempLabel(temp);
+
+        if (!isNaN(temp)) {
+          if (temp > sessionTMax) { sessionTMax = temp; elStatTMax.textContent = temp.toFixed(1) + '°C'; }
+          if (temp < sessionTMin) { sessionTMin = temp; elStatTMin.textContent = temp.toFixed(1) + '°C'; }
+
+          // Update chart
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+          chartTemp.data.labels.push(timeStr);
+          chartTemp.data.datasets[0].data.push(temp);
+          if (chartTemp.data.labels.length > 30) {
+            chartTemp.data.labels.shift();
+            chartTemp.data.datasets[0].data.shift();
+          }
+          chartTemp.update();
+        }
+
+        updateTimestamp();
+        dataCount++;
+        elStatCount.textContent = dataCount;
+        hideError();
+      }
+      checkFirstLoad();
+    }, (error) => {
+      showError('Firebase Connection Error: ' + error.message);
+    });
+
+    // Humidity Listener
+    onValue(humRef, (snapshot) => {
+      const val = snapshot.val();
+      if (val !== null) {
+        const hum = parseFloat(val);
+        const hDisplay = isNaN(hum) ? '--' : hum.toFixed(1);
+
+        setValueAnimated(elHumVal, `${hDisplay}<span class="value-unit">%</span>`);
+        elHumStatus.textContent = isNaN(hum) ? 'No data' : humLabel(hum);
+
+        if (!isNaN(hum)) {
+          if (hum > sessionHMax) { sessionHMax = hum; elStatHMax.textContent = hum.toFixed(1) + '%'; }
+          if (hum < sessionHMin) { sessionHMin = hum; elStatHMin.textContent = hum.toFixed(1) + '%'; }
+
+          // Update chart
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+          chartHum.data.labels.push(timeStr);
+          chartHum.data.datasets[0].data.push(hum);
+          if (chartHum.data.labels.length > 30) {
+            chartHum.data.labels.shift();
+            chartHum.data.datasets[0].data.shift();
+          }
+          chartHum.update();
+        }
+
+        updateTimestamp();
+        dataCount++;
+        elStatCount.textContent = dataCount;
+        hideError();
+      }
+      checkFirstLoad();
+    }, (error) => {
+      showError('Firebase Connection Error: ' + error.message);
+    });
+
   </script>
 
 </body>
