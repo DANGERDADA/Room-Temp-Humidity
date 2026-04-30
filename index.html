@@ -2416,11 +2416,9 @@
     /* ─────────────────────────────────────────
        ENVIRONMENT TAB
     ───────────────────────────────────────── */
-    document.getElementById('env-grant-btn').addEventListener('click', async () => {
-      requestLocation();
-    });
 
-    async function requestLocation() {
+    // Hook location access to button
+    document.getElementById('env-grant-btn').addEventListener('click', async () => {
       if (!navigator.geolocation) {
         alert('Geolocation is not supported by your browser.');
         return;
@@ -2430,9 +2428,8 @@
       document.getElementById('env-loading').style.display = 'block';
 
       navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const { latitude: lat, longitude: lon } = pos.coords;
-          await fetchWeatherData(lat, lon);
+        (pos) => {
+          fetchWeather(pos.coords.latitude, pos.coords.longitude);
         },
         (err) => {
           document.getElementById('env-loading').style.display = 'none';
@@ -2440,57 +2437,54 @@
           showError('Location error: ' + err.message);
         }
       );
-    }
+    });
 
-    async function fetchWeatherData(lat, lon) {
+    // Updated fetch logic using secure endpoint
+    async function fetchWeather(lat, lon) {
       try {
-        // 1. Fetch from secure backend
-        const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+        const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
         
-        // 2. Properly handle response status
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (!res.ok) {
+          throw new Error("API failed");
         }
-        
-        // 3. Parse JSON correctly
-        const data = await response.json();
 
-        // Fallback for AQI in case backend only sends weather right now
-        const aqi = data.aqi || { list: [{ main: { aqi: 0 }, components: {} }] };
+        const data = await res.json();
+        console.log("Weather API Data:", data);
 
-        // Hide loading, show data panel
+        // Parse combined response
+        const weather = data.weather;
+        const aqi = data.aqi;
+
+        // Hide loading and show panel
         document.getElementById('env-loading').style.display = 'none';
         document.getElementById('env-data-panel').classList.add('visible');
 
-        // Update Location (with fallbacks if backend strips these fields)
+        // Location text update
         document.getElementById('env-location-text').textContent =
-          `${data.name || 'Your Location'}, ${data.sys?.country || ''} · ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+          `${weather?.name || 'Your Location'}, ${weather?.sys?.country || ''} · ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
 
-        // 4. Use correct data fields for Weather
-        const outsideTemp = data.main.temp;
-        currentOutsideTemp = outsideTemp;
-        
-        document.getElementById('env-temp-val').innerHTML =
-          `${outsideTemp.toFixed(1)}<span class="env-unit">°C</span>`;
-          
-        // Use weather[0].main (e.g., "Clear", "Rain")
-        const conditionText = data.weather?.[0]?.main || '—';
-        document.getElementById('env-condition').textContent = conditionText;
-        
-        // Fallback to actual temp if feels_like is missing from backend
-        const feelsLike = data.main?.feels_like !== undefined ? data.main.feels_like : outsideTemp;
-        document.getElementById('env-feels-like').textContent = feelsLike.toFixed(1) + '°C';
-        
-        // Use correct humidity field
-        document.getElementById('env-hum-val').textContent = data.main.humidity + '%';
-        
-        // Fallback for wind speed if missing
-        const windSpeed = data.wind?.speed !== undefined ? data.wind.speed : '--';
-        document.getElementById('env-wind').textContent = windSpeed + ' m/s';
+        // Current outside temp
+        currentOutsideTemp = weather.main.temp; 
+
+        // Correct data mappings for Weather
+        document.getElementById("env-temp-val").innerHTML =
+          `${weather.main.temp.toFixed(1)}<span class="env-unit">°C</span>`;
+
+        document.getElementById("env-condition").innerText =
+          weather.weather?.[0]?.main || '—';
+
+        document.getElementById("env-feels-like").innerText =
+          `${(weather.main.feels_like || weather.main.temp).toFixed(1)}°C`;
+
+        document.getElementById("env-hum-val").innerText =
+          `${weather.main.humidity}%`;
+
+        document.getElementById("env-wind").innerText =
+          `${weather.wind?.speed || '--'} m/s`;
 
         // AQI Logic
-        const aqiVal = aqi.list?.[0]?.main?.aqi || 0;
-        const aqiComponents = aqi.list?.[0]?.components || {};
+        const aqiVal = aqi?.list?.[0]?.main?.aqi || 0;
+        const aqiComponents = aqi?.list?.[0]?.components || {};
         const aqiLabels = ['', 'Good', 'Fair', 'Moderate', 'Poor', 'Very Poor'];
         const aqiColors = ['', 'var(--aqi-good)', '#22d3a5', 'var(--aqi-moderate)', 'var(--aqi-poor)', 'var(--aqi-bad)'];
         const aqiPct = Math.min(100, (aqiVal / 5) * 100);
@@ -2501,17 +2495,24 @@
         document.getElementById('env-aqi-bar').style.background= aqiColors[aqiVal] || 'var(--env-base)';
         document.getElementById('env-aqi-cat').textContent     = aqiLabels[aqiVal] || '—';
         document.getElementById('env-aqi-cat').style.color     = aqiColors[aqiVal] || 'var(--text-secondary)';
-        document.getElementById('env-pm25').textContent = (aqiComponents.pm2_5 || '--') + ' μg/m³';
-        document.getElementById('env-pm10').textContent = (aqiComponents.pm10  || '--') + ' μg/m³';
-        document.getElementById('env-co').textContent   = (aqiComponents.co    || '--') + ' μg/m³';
+        
+        document.getElementById('env-pm25').textContent = (aqiComponents.pm2_5 !== undefined ? aqiComponents.pm2_5 : '--') + ' μg/m³';
+        document.getElementById('env-pm10').textContent = (aqiComponents.pm10 !== undefined ? aqiComponents.pm10  : '--') + ' μg/m³';
+        document.getElementById('env-co').textContent   = (aqiComponents.co !== undefined ? aqiComponents.co    : '--') + ' μg/m³';
 
         updateCompareCard();
 
-      } catch (e) {
+      } catch (err) {
+        console.error("Weather fetch error:", err);
+        
+        // Reset loading state
         document.getElementById('env-loading').style.display = 'none';
         document.getElementById('env-permission-banner').classList.remove('hidden');
-        showError('Weather API error — failed to fetch from secure backend.');
-        console.error('Weather fetch error:', e);
+
+        // Show global error banner
+        document.getElementById("error-banner").classList.add("visible");
+        document.getElementById("error-msg").innerText =
+          "Weather API error - failed to fetch from secure backend";
       }
     }
 
