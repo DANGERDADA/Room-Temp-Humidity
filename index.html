@@ -1251,6 +1251,14 @@
       margin-top: 8px;
       letter-spacing: 0.08em;
     }
+    
+    /* New AQI Advice specific */
+    .env-aqi-advice {
+      font-family: 'Outfit', sans-serif;
+      font-size: 11px;
+      margin-top: 6px;
+      color: var(--text-secondary);
+    }
 
     /* Comparison card */
     .compare-row {
@@ -1757,10 +1765,13 @@
                 <div class="aqi-bar" id="env-aqi-bar" style="width:0%; background:var(--aqi-moderate)"></div>
               </div>
               <div class="aqi-category" id="env-aqi-cat">—</div>
+              
+              <!-- Smart Health Message injected here -->
+              <div class="env-aqi-advice" id="env-aqi-advice">—</div>
+              
               <div class="env-details-row" style="margin-top:10px">
                 <div class="env-detail-item">PM2.5<span id="env-pm25">--</span></div>
                 <div class="env-detail-item">PM10<span id="env-pm10">--</span></div>
-                <div class="env-detail-item">CO<span id="env-co">--</span></div>
               </div>
             </div>
 
@@ -2414,8 +2425,35 @@
     });
 
     /* ─────────────────────────────────────────
-       ENVIRONMENT TAB
+       ENVIRONMENT TAB (NEW WAQI PRO LOGIC)
     ───────────────────────────────────────── */
+
+    function getAQIText(aqi) {
+      if (aqi <= 50) return "Good";
+      if (aqi <= 100) return "Satisfactory";
+      if (aqi <= 200) return "Moderate";
+      if (aqi <= 300) return "Poor";
+      if (aqi <= 400) return "Very Poor";
+      return "Severe";
+    }
+
+    function getAQIColor(aqi) {
+      if (aqi <= 50) return "#00e400";
+      if (aqi <= 100) return "#9cff00";
+      if (aqi <= 200) return "#ffff00";
+      if (aqi <= 300) return "#ff7e00";
+      if (aqi <= 400) return "#ff0000";
+      return "#8f3f97";
+    }
+
+    function getHealthAdvice(aqi) {
+      if (aqi <= 50) return "Air quality is excellent 😎";
+      if (aqi <= 100) return "Acceptable for most people 👍";
+      if (aqi <= 200) return "Sensitive people should take care ⚠️";
+      if (aqi <= 300) return "Limit outdoor exposure 🚫";
+      if (aqi <= 400) return "Avoid outdoor activities 😷";
+      return "Hazardous air 🚨 Stay indoors";
+    }
 
     // Hook location access to button
     document.getElementById('env-grant-btn').addEventListener('click', async () => {
@@ -2439,7 +2477,7 @@
       );
     });
 
-    // Updated fetch logic using secure endpoint
+    // Updated fetch logic
     async function fetchWeather(lat, lon) {
       try {
         const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
@@ -2451,7 +2489,6 @@
         const data = await res.json();
         console.log("Weather API Data:", data);
 
-        // Parse combined response
         const weather = data.weather;
         const aqi = data.aqi;
 
@@ -2463,10 +2500,9 @@
         document.getElementById('env-location-text').textContent =
           `${weather?.name || 'Your Location'}, ${weather?.sys?.country || ''} · ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
 
-        // Current outside temp
+        // Weather Data Mapping
         currentOutsideTemp = weather.main.temp; 
-
-        // Correct data mappings for Weather
+        
         document.getElementById("env-temp-val").innerHTML =
           `${weather.main.temp.toFixed(1)}<span class="env-unit">°C</span>`;
 
@@ -2482,23 +2518,31 @@
         document.getElementById("env-wind").innerText =
           `${weather.wind?.speed || '--'} m/s`;
 
-        // AQI Logic
-        const aqiVal = aqi?.list?.[0]?.main?.aqi || 0;
-        const aqiComponents = aqi?.list?.[0]?.components || {};
-        const aqiLabels = ['', 'Good', 'Fair', 'Moderate', 'Poor', 'Very Poor'];
-        const aqiColors = ['', 'var(--aqi-good)', '#22d3a5', 'var(--aqi-moderate)', 'var(--aqi-poor)', 'var(--aqi-bad)'];
-        const aqiPct = Math.min(100, (aqiVal / 5) * 100);
-
-        document.getElementById('env-aqi-val').textContent     = aqiVal;
-        document.getElementById('env-aqi-val').style.color     = aqiColors[aqiVal] || 'var(--text-primary)';
-        document.getElementById('env-aqi-bar').style.width     = aqiPct + '%';
-        document.getElementById('env-aqi-bar').style.background= aqiColors[aqiVal] || 'var(--env-base)';
-        document.getElementById('env-aqi-cat').textContent     = aqiLabels[aqiVal] || '—';
-        document.getElementById('env-aqi-cat').style.color     = aqiColors[aqiVal] || 'var(--text-secondary)';
+        // AQI Data Mapping (WAQI standard)
+        const aqiValue = aqi?.data?.aqi || 0;
+        const aqiColor = getAQIColor(aqiValue);
+        const aqiText = getAQIText(aqiValue);
+        const aqiAdvice = getHealthAdvice(aqiValue);
         
-        document.getElementById('env-pm25').textContent = (aqiComponents.pm2_5 !== undefined ? aqiComponents.pm2_5 : '--') + ' μg/m³';
-        document.getElementById('env-pm10').textContent = (aqiComponents.pm10 !== undefined ? aqiComponents.pm10  : '--') + ' μg/m³';
-        document.getElementById('env-co').textContent   = (aqiComponents.co !== undefined ? aqiComponents.co    : '--') + ' μg/m³';
+        const pm25 = aqi?.data?.iaqi?.pm25?.v;
+        const pm10 = aqi?.data?.iaqi?.pm10?.v;
+
+        // Update AQI UI Elements
+        document.getElementById('env-aqi-val').textContent = aqiValue;
+        document.getElementById('env-aqi-val').style.color = aqiColor;
+        
+        // Progress bar scaling (0 to 500 scale)
+        const aqiPct = Math.min(100, (aqiValue / 500) * 100);
+        document.getElementById('env-aqi-bar').style.width = aqiPct + '%';
+        document.getElementById('env-aqi-bar').style.background = aqiColor;
+
+        document.getElementById('env-aqi-cat').textContent = aqiText;
+        document.getElementById('env-aqi-cat').style.color = aqiColor;
+        
+        // Smart Advice and Particulates
+        document.getElementById('env-aqi-advice').textContent = aqiAdvice;
+        document.getElementById('env-pm25').textContent = (pm25 !== undefined ? pm25 : '--') + ' μg/m³';
+        document.getElementById('env-pm10').textContent = (pm10 !== undefined ? pm10 : '--') + ' μg/m³';
 
         updateCompareCard();
 
