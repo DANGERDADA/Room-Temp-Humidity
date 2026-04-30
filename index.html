@@ -1885,10 +1885,10 @@
 
     function formatTime(seconds) {
       if (isNaN(seconds)) return seconds; 
-      const date = new Date(seconds * 1000);
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      return `${hours}:${minutes}`;
+      const numSecs = Number(seconds);
+      const hrs = Math.floor(numSecs / 3600);
+      const mins = Math.floor((numSecs % 3600) / 60);
+      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
     }
 
     function checkFirstLoad() {
