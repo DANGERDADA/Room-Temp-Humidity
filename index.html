@@ -1883,6 +1883,14 @@
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return seconds; 
+      const date = new Date(seconds * 1000);
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+
     function checkFirstLoad() {
       if (firstLoad) {
         firstLoad = false;
@@ -2089,7 +2097,7 @@
         if (!snapshot.exists()) return;
         
         const data = snapshot.val();
-        const sortedTimes = Object.keys(data).sort();
+        const sortedTimes = Object.keys(data).sort((a,b) => Number(a) - Number(b));
         
         sortedTimes.forEach(time => {
           const entry = data[time];
@@ -2099,7 +2107,7 @@
             
             tempReadings.push(t);
             humReadings.push(h);
-            timeReadings.push(time);
+            timeReadings.push(formatTime(time));
             
             if (t > sessionTMax) sessionTMax = t;
             if (t < sessionTMin) sessionTMin = t;
@@ -2279,12 +2287,12 @@
 
           if (period === 'today') {
             // Hourly resolution for today
-            Object.keys(dayData).sort().forEach(timeKey => {
+            Object.keys(dayData).sort((a,b)=>Number(a)-Number(b)).forEach(timeKey => {
               const entry = dayData[timeKey];
               if (entry && entry.temp != null && entry.hum != null) {
                 tempData.push(parseFloat(entry.temp));
                 humData.push(parseFloat(entry.hum));
-                labelData.push(timeKey);
+                labelData.push(formatTime(timeKey));
                 if (parseFloat(entry.temp) >= 35) alertEvents++;
               }
             });
