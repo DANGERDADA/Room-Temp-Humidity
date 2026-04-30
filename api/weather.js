@@ -1,21 +1,22 @@
 export default async function handler(req, res) {
   const { lat, lon } = req.query;
-  const API_KEY = process.env.OPENWEATHER_API_KEY;
+
+  const WEATHER_KEY = process.env.OPENWEATHER_API_KEY;
+  const WAQI_KEY = process.env.WAQI_API_KEY;
 
   try {
     // 🌤 WEATHER
     const weatherRes = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${WEATHER_KEY}&units=metric`
     );
     const weatherData = await weatherRes.json();
 
-    // 🌫 AQI
+    // 🌫 WAQI AQI (INDIAN ACCURATE)
     const aqiRes = await fetch(
-      `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`
+      `https://api.waqi.info/feed/geo:${lat};${lon}/?token=${WAQI_KEY}`
     );
     const aqiData = await aqiRes.json();
 
-    // 🔥 COMBINED RESPONSE
     res.status(200).json({
       weather: weatherData,
       aqi: aqiData
