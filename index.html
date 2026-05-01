@@ -425,14 +425,15 @@
       gap: clamp(14px, 2.5vw, 24px);
     }
 
-    .metric-card {
-      background: var(--bg-card);
-      backdrop-filter: blur(24px) saturate(160%);
-      -webkit-backdrop-filter: blur(24px) saturate(160%);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-card);
+    /* APPLE GLASS STYLE UPGRADE */
+    .metric-card, .chart-card, .analytics-chart-wrap {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
       padding: clamp(24px, 3.5vw, 36px);
-      box-shadow: var(--shadow-card);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
       position: relative;
       overflow: hidden;
       transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
@@ -441,38 +442,10 @@
       cursor: default;
     }
 
-    .metric-card:hover {
-      transform: translateY(-6px) scale(1.01);
-      border-color: var(--border-active);
+    .metric-card:hover, .chart-card:hover, .analytics-chart-wrap:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255,255,255,0.15);
     }
-
-    .metric-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      border-radius: var(--radius-card) var(--radius-card) 0 0;
-    }
-
-    .card-temp::before   { background: linear-gradient(90deg, var(--temp-base), var(--temp-mid), transparent); }
-    .card-humid::before  { background: linear-gradient(90deg, var(--hum-base), var(--hum-mid), transparent); }
-
-    .metric-card::after {
-      content: '';
-      position: absolute;
-      top: -30%; right: -10%;
-      width: 60%; height: 80%;
-      border-radius: 50%;
-      filter: blur(60px);
-      opacity: 0.5;
-      pointer-events: none;
-    }
-
-    .card-temp::after  { background: var(--temp-glow-soft); }
-    .card-humid::after { background: var(--hum-glow-soft); }
-
-    .metric-card:hover.card-temp  { box-shadow: var(--shadow-card), 0 0 60px var(--temp-glow); }
-    .metric-card:hover.card-humid { box-shadow: var(--shadow-card), 0 0 60px var(--hum-glow); }
 
     .card-header {
       display: flex;
@@ -571,7 +544,7 @@
     }
 
     .stat-box {
-      background: var(--bg-card);
+      background: rgba(255, 255, 255, 0.02);
       border: 1px solid var(--border);
       border-radius: var(--radius-inner);
       padding: clamp(12px, 2vw, 18px);
@@ -611,31 +584,6 @@
       gap: clamp(14px, 2.5vw, 24px);
     }
 
-    .chart-card {
-      background: var(--bg-card);
-      backdrop-filter: blur(20px) saturate(140%);
-      -webkit-backdrop-filter: blur(20px) saturate(140%);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-card);
-      padding: clamp(20px, 3vw, 30px);
-      box-shadow: var(--shadow-card);
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1);
-    }
-
-    .chart-card:hover { border-color: var(--border-active); transform: translateY(-3px); }
-
-    .chart-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-    }
-
-    .chart-temp::before  { background: linear-gradient(90deg, var(--temp-base), transparent); }
-    .chart-humid::before { background: linear-gradient(90deg, var(--hum-base), transparent); }
-
     .chart-header {
       display: flex;
       align-items: center;
@@ -669,7 +617,7 @@
     .chart-temp  .chart-badge { background: rgba(255,107,53,0.12); color: var(--temp-mid); border: 1px solid rgba(255,107,53,0.2); }
     .chart-humid .chart-badge { background: rgba(0,198,255,0.10);  color: var(--hum-base);  border: 1px solid rgba(0,198,255,0.18); }
 
-    .chart-canvas-wrap { height: 180px; position: relative; }
+    .chart-canvas-wrap { height: 180px; position: relative; padding: 20px; }
 
     /* ─────────────────────────────────────────────
        SMART INSIGHTS
@@ -703,8 +651,6 @@
       flex-shrink: 0;
       margin-top: 1px;
     }
-
-    .insight-body {}
 
     .insight-title {
       font-family: 'DM Mono', monospace;
@@ -788,18 +734,6 @@
 
     .analytics-stat-card:hover { border-color: var(--border-active); transform: translateY(-2px); }
 
-    .analytics-stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-    }
-
-    .asc-temp::before { background: linear-gradient(90deg, var(--temp-base), transparent); }
-    .asc-hum::before  { background: linear-gradient(90deg, var(--hum-base), transparent); }
-    .asc-alert::before { background: linear-gradient(90deg, #ef4444, transparent); }
-    .asc-generic::before { background: linear-gradient(90deg, var(--accent-purple), transparent); }
-
     .asc-label {
       font-family: 'Rajdhani', sans-serif;
       font-size: 10px;
@@ -826,16 +760,6 @@
       color: var(--text-muted);
       margin-top: 4px;
     }
-
-    .analytics-chart-wrap {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-card);
-      padding: clamp(20px, 3vw, 30px);
-      margin-bottom: 20px;
-    }
-
-    .analytics-chart-wrap canvas { height: 220px !important; }
 
     .analytics-minmax-grid {
       display: grid;
@@ -876,8 +800,6 @@
       font-size: 12px;
       letter-spacing: 0.1em;
     }
-
-    .analytics-no-data .nd-icon { font-size: 36px; display: block; margin-bottom: 12px; }
 
     /* ─────────────────────────────────────────────
        CALENDAR TAB
@@ -1137,14 +1059,6 @@
       box-shadow: 0 0 20px rgba(34,211,165,0.2);
     }
 
-    .env-api-note {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      color: var(--text-muted);
-      margin-top: 12px;
-      letter-spacing: 0.06em;
-    }
-
     .env-data-panel { display: none; }
     .env-data-panel.visible { display: block; }
 
@@ -1165,19 +1079,6 @@
       transition: border-color 0.25s, transform 0.25s;
     }
 
-    .env-card:hover { border-color: var(--border-active); transform: translateY(-3px); }
-
-    .env-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-    }
-
-    .env-card-weather::before { background: linear-gradient(90deg, var(--env-base), transparent); }
-    .env-card-aqi::before     { background: linear-gradient(90deg, var(--aqi-moderate), transparent); }
-    .env-card-compare::before { background: linear-gradient(90deg, var(--accent-purple), transparent); }
-
     .env-card-label {
       font-family: 'Rajdhani', sans-serif;
       font-size: 10px;
@@ -1194,8 +1095,6 @@
       line-height: 1;
       color: var(--env-base);
     }
-
-    .env-card-weather .env-main-value { color: var(--env-base); }
 
     .env-unit {
       font-family: 'Rajdhani', sans-serif;
@@ -1252,7 +1151,6 @@
       letter-spacing: 0.08em;
     }
     
-    /* New AQI Advice specific */
     .env-aqi-advice {
       font-family: 'Outfit', sans-serif;
       font-size: 11px;
@@ -1260,7 +1158,6 @@
       color: var(--text-secondary);
     }
 
-    /* Comparison card */
     .compare-row {
       display: flex;
       align-items: center;
@@ -1371,16 +1268,6 @@
       .charts-grid { grid-template-columns: 1fr 1fr; }
     }
 
-    /* Loading pulse for analytics */
-    .data-loading {
-      opacity: 0.5;
-      animation: dataPulse 1.5s ease-in-out infinite;
-    }
-
-    @keyframes dataPulse {
-      0%, 100% { opacity: 0.5; }
-      50% { opacity: 0.8; }
-    }
   </style>
 </head>
 
@@ -1883,14 +1770,6 @@
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
-    function formatTime(seconds) {
-      if (isNaN(seconds)) return seconds; 
-      const numSecs = Number(seconds);
-      const hrs = Math.floor(numSecs / 3600);
-      const mins = Math.floor((numSecs % 3600) / 60);
-      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-    }
-
     function checkFirstLoad() {
       if (firstLoad) {
         firstLoad = false;
@@ -1938,39 +1817,55 @@
       return `rgba(239,68,68,${0.4 + Math.min(0.45, (t-32)/10)})`;
     }
 
+    // Chart.js Plugin to add native shadow drop for that Apple Glass neon glow effect.
+    const glowPlugin = {
+      id: 'glowPlugin',
+      beforeDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.shadowColor = chart.data.datasets[0].borderColor;
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 4;
+      },
+      afterDatasetsDraw(chart) {
+        chart.ctx.restore();
+      }
+    };
+
     /* ─────────────────────────────────────────
        CHART FACTORY
     ───────────────────────────────────────── */
-    function buildChart(canvasId, color) {
+    function buildChart(canvasId, colorBase) {
       const ctx = document.getElementById(canvasId).getContext('2d');
-      const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-      gradient.addColorStop(0,   color.replace(')', ', 0.28)').replace('rgb', 'rgba'));
-      gradient.addColorStop(0.7, color.replace(')', ', 0.04)').replace('rgb', 'rgba'));
-      gradient.addColorStop(1,   'rgba(0,0,0,0)');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, colorBase.replace(')', ', 0.6)').replace('rgb', 'rgba'));
+      gradient.addColorStop(1, colorBase.replace(')', ', 0.0)').replace('rgb', 'rgba'));
 
       return new Chart(ctx, {
         type: 'line',
-        data: { labels: [], datasets: [{ data: [], borderColor: color, borderWidth: 2,
-          pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: color,
-          pointHoverBorderColor: '#0d1420', pointHoverBorderWidth: 2,
-          fill: true, backgroundColor: gradient, tension: 0.42 }] },
+        plugins: [glowPlugin],
+        data: { labels: [], datasets: [{ data: [], borderColor: colorBase, borderWidth: 2,
+          pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: colorBase,
+          pointHoverBackgroundColor: '#fff', pointHoverBorderColor: colorBase, pointHoverBorderWidth: 2,
+          fill: true, backgroundColor: gradient, tension: 0.45 }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          animation: { duration: 600, easing: 'easeInOutCubic' },
+          animation: { duration: 1200, easing: 'easeOutQuart' },
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: 'rgba(13,20,36,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
-              titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Mono', size: 13 }, padding: 10,
-              callbacks: { label: ctx => `  ${ctx.parsed.y.toFixed(1)}` }
+              backgroundColor: "rgba(20,20,20,0.85)", borderColor: "rgba(255,255,255,0.1)", borderWidth: 1,
+              titleFont: { family: 'Outfit', size: 13, weight: '600' }, bodyFont: { family: 'DM Mono', size: 12 },
+              padding: 12, titleColor: "#ffffff", bodyColor: "rgba(255,255,255,0.8)", displayColors: false, cornerRadius: 8
             }
           },
           scales: {
             x: { display: false },
             y: {
-              grid: { color: 'rgba(255,255,255,0.045)', drawBorder: false },
-              ticks: { font: { family: 'DM Mono', size: 10 }, color: '#4a5568', maxTicksLimit: 5, padding: 8 },
+              grid: { color: "rgba(255,255,255,0.05)", drawBorder: false },
+              ticks: { font: { family: 'DM Mono', size: 10 }, color: "rgba(255,255,255,0.4)", maxTicksLimit: 5, padding: 8 },
               border: { display: false }
             }
           }
@@ -1978,38 +1873,41 @@
       });
     }
 
-    function buildAnalyticsChart(canvasId, color, showXAxis = true) {
+    function buildAnalyticsChart(canvasId, colorBase, showXAxis = true) {
       const ctx = document.getElementById(canvasId).getContext('2d');
-      const gradient = ctx.createLinearGradient(0, 0, 0, 220);
-      gradient.addColorStop(0,   color.replace(')', ', 0.22)').replace('rgb', 'rgba'));
-      gradient.addColorStop(1,   'rgba(0,0,0,0)');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, colorBase.replace(')', ', 0.6)').replace('rgb', 'rgba'));
+      gradient.addColorStop(1, colorBase.replace(')', ', 0.0)').replace('rgb', 'rgba'));
 
       return new Chart(ctx, {
         type: 'line',
-        data: { labels: [], datasets: [{ data: [], borderColor: color, borderWidth: 2,
-          pointRadius: 2, pointBackgroundColor: color,
-          pointHoverRadius: 6, fill: true, backgroundColor: gradient, tension: 0.35 }] },
+        plugins: [glowPlugin],
+        data: { labels: [], datasets: [{ data: [], borderColor: colorBase, borderWidth: 2,
+          pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: colorBase,
+          pointHoverBackgroundColor: '#fff', pointHoverBorderColor: colorBase, pointHoverBorderWidth: 2,
+          fill: true, backgroundColor: gradient, tension: 0.45 }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          animation: { duration: 400 },
+          animation: { duration: 1200, easing: 'easeOutQuart' },
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: 'rgba(13,20,36,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
-              titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Mono', size: 12 }, padding: 10
+              backgroundColor: "rgba(20,20,20,0.85)", borderColor: "rgba(255,255,255,0.1)", borderWidth: 1,
+              titleFont: { family: 'Outfit', size: 13, weight: '600' }, bodyFont: { family: 'DM Mono', size: 12 },
+              padding: 12, titleColor: "#ffffff", bodyColor: "rgba(255,255,255,0.8)", displayColors: false, cornerRadius: 8
             }
           },
           scales: {
             x: {
               display: showXAxis,
-              grid: { color: 'rgba(255,255,255,0.03)' },
-              ticks: { font: { family: 'DM Mono', size: 9 }, color: '#4a5568', maxTicksLimit: 8, maxRotation: 0 },
+              grid: { display: false },
+              ticks: { font: { family: 'DM Mono', size: 10 }, color: "rgba(255,255,255,0.4)", maxTicksLimit: 6, maxRotation: 0 },
               border: { display: false }
             },
             y: {
-              grid: { color: 'rgba(255,255,255,0.045)', drawBorder: false },
-              ticks: { font: { family: 'DM Mono', size: 10 }, color: '#4a5568', maxTicksLimit: 5, padding: 8 },
+              grid: { color: "rgba(255,255,255,0.05)", drawBorder: false },
+              ticks: { font: { family: 'DM Mono', size: 11 }, color: "rgba(255,255,255,0.4)", maxTicksLimit: 5, padding: 10 },
               border: { display: false }
             }
           }
@@ -2107,7 +2005,12 @@
             
             tempReadings.push(t);
             humReadings.push(h);
-            timeReadings.push(formatTime(time));
+            
+            const numSecs = Number(time);
+            const hrs = Math.floor(numSecs / 3600);
+            const mins = Math.floor((numSecs % 3600) / 60);
+            const timeFormatted = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            timeReadings.push(timeFormatted);
             
             if (t > sessionTMax) sessionTMax = t;
             if (t < sessionTMin) sessionTMin = t;
@@ -2124,7 +2027,7 @@
         if (sessionHMin !== Infinity) elStatHMin.textContent = sessionHMin.toFixed(1) + '%';
         elStatCount.textContent = dataCount;
         
-        // Update Charts (last 30)
+        // Update Charts (last 60 max using downsampling strategy for Live view if needed, but we keep last 30 for the live rolling window to prevent clutter)
         chartTemp.data.labels = timeReadings.slice(-30);
         chartTemp.data.datasets[0].data = tempReadings.slice(-30);
         chartTemp.update();
@@ -2156,7 +2059,7 @@
           if (!isNaN(temp)) {
             lastTemp = temp;
             const now = new Date();
-            const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); // Fallback for live rolling view if we aren't tracking seconds strictly live.
             tempReadings.push(temp); timeReadings.push(timeStr);
 
             if (temp > sessionTMax) { sessionTMax = temp; elStatTMax.textContent = temp.toFixed(1) + '°C'; }
@@ -2195,7 +2098,9 @@
             if (hum > sessionHMax) { sessionHMax = hum; elStatHMax.textContent = hum.toFixed(1) + '%'; }
             if (hum < sessionHMin) { sessionHMin = hum; elStatHMin.textContent = hum.toFixed(1) + '%'; }
 
-            chartHum.data.labels.push(new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            chartHum.data.labels.push(timeStr);
             chartHum.data.datasets[0].data.push(hum);
             if (chartHum.data.labels.length > 30) {
               chartHum.data.labels.shift();
@@ -2292,7 +2197,13 @@
               if (entry && entry.temp != null && entry.hum != null) {
                 tempData.push(parseFloat(entry.temp));
                 humData.push(parseFloat(entry.hum));
-                labelData.push(formatTime(timeKey));
+                
+                const numSecs = Number(timeKey);
+                const hrs = Math.floor(numSecs / 3600);
+                const mins = Math.floor((numSecs % 3600) / 60);
+                const timeFormatted = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+                labelData.push(timeFormatted);
+                
                 if (parseFloat(entry.temp) >= 35) alertEvents++;
               }
             });
@@ -2329,13 +2240,19 @@
         document.getElementById('an-hmax').textContent     = maxH.toFixed(1) + '%';
         document.getElementById('an-hmin').textContent     = minH.toFixed(1) + '%';
 
+        // Downsampling to max ~60 points for the Apple glass UI
+        const step = Math.ceil(tempData.length / 60);
+        const filteredTemps = tempData.filter((_, i) => i % step === 0);
+        const filteredHums  = humData.filter((_, i) => i % step === 0);
+        const filteredLabels = labelData.filter((_, i) => i % step === 0);
+
         // Update analytics charts
-        chartAnTemp.data.labels   = labelData;
-        chartAnTemp.data.datasets[0].data = tempData;
+        chartAnTemp.data.labels   = filteredLabels;
+        chartAnTemp.data.datasets[0].data = filteredTemps;
         chartAnTemp.update();
 
-        chartAnHum.data.labels   = labelData;
-        chartAnHum.data.datasets[0].data = humData;
+        chartAnHum.data.labels   = filteredLabels;
+        chartAnHum.data.datasets[0].data = filteredHums;
         chartAnHum.update();
 
       } catch(e) {
