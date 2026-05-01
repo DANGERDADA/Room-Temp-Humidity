@@ -1104,8 +1104,6 @@
       color: var(--env-base);
     }
 
-    .env-card-weather .env-main-value { color: var(--env-base); }
-
     .env-unit {
       font-family: 'Rajdhani', sans-serif;
       font-size: 20px;
@@ -2239,6 +2237,27 @@
             }
           }
         });
+
+        // Append live data directly into today's array to avoid clipping issues
+        try {
+          const liveSnap = await get(ref(db, "room"));
+          if (liveSnap.exists()) {
+            const live = liveSnap.val();
+            if (live.temp != null && live.hum != null) {
+              tempData.push(parseFloat(live.temp));
+              humData.push(parseFloat(live.hum));
+              if (period === 'today') {
+                const now = Math.floor(Date.now() / 1000);
+                labelData.push(formatTime(now));
+              } else {
+                const todayStrFormatted = todayStr().slice(5); 
+                labelData.push(todayStrFormatted);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Could not fetch live room data:', err);
+        }
 
         if (tempData.length === 0) { showNoAnalyticsData(dateLabel, period); return; }
 
