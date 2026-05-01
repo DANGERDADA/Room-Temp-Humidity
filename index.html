@@ -12,17 +12,16 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <style>
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        DESIGN TOKENS
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     :root {
-      --bg-base:        #060a12;
-      --bg-surface:     #0b1221;
-      --bg-card:        rgba(11, 18, 33, 0.80);
-      --bg-card-hover:  rgba(14, 24, 46, 0.92);
+      --bg-base:        #080c14;
+      --bg-surface:     #0d1420;
+      --bg-card:        rgba(13, 20, 36, 0.72);
+      --bg-card-hover:  rgba(16, 25, 46, 0.88);
       --border:         rgba(255, 255, 255, 0.07);
       --border-active:  rgba(255, 255, 255, 0.14);
-      --border-glow:    rgba(59, 130, 246, 0.3);
 
       --temp-base:      #ff6b35;
       --temp-mid:       #ff9a3c;
@@ -52,18 +51,14 @@
       --accent-purple:  #8b5cf6;
       --accent-blue:    #3b82f6;
 
-      --radius-card:    24px;
-      --radius-inner:   14px;
-      --shadow-card:    0 8px 48px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.04) inset;
-      --shadow-elevated:0 20px 60px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.06) inset;
-
-      --ease-spring:    cubic-bezier(0.22, 1, 0.36, 1);
-      --ease-smooth:    cubic-bezier(0.4, 0, 0.2, 1);
+      --radius-card:    22px;
+      --radius-inner:   12px;
+      --shadow-card:    0 8px 40px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset;
     }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        RESET & BASE
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
 
@@ -76,7 +71,6 @@
       position: relative;
     }
 
-    /* Noise texture */
     body::before {
       content: '';
       position: fixed;
@@ -84,21 +78,20 @@
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
       pointer-events: none;
       z-index: 0;
-      opacity: 0.5;
+      opacity: 0.6;
     }
 
-    /* Ambient glow */
     body::after {
       content: '';
       position: fixed;
-      top: -15%;
+      top: -20%;
       left: 50%;
       transform: translateX(-50%);
-      width: 1100px;
-      height: 600px;
+      width: 900px;
+      height: 500px;
       background: radial-gradient(ellipse at center,
-        rgba(0, 72, 255, 0.07) 0%,
-        rgba(100, 0, 255, 0.03) 50%,
+        rgba(0, 72, 255, 0.08) 0%,
+        rgba(100, 0, 255, 0.04) 50%,
         transparent 70%);
       pointer-events: none;
       z-index: 0;
@@ -109,58 +102,46 @@
       inset: 0;
       background-image: repeating-linear-gradient(
         0deg, transparent, transparent 2px,
-        rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px
+        rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px
       );
       pointer-events: none;
       z-index: 0;
     }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        LAYOUT
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .wrapper {
       position: relative;
       z-index: 1;
-      max-width: 1300px;
+      max-width: 1280px;
       margin: 0 auto;
-      padding: 0 clamp(16px, 4vw, 48px);
+      padding: 0 clamp(16px, 4vw, 40px);
     }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        LOADING OVERLAY
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     #loading-overlay {
       position: fixed;
       inset: 0;
       background: var(--bg-base);
-      z-index: 2000;
+      z-index: 1000;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      transition: opacity 0.7s var(--ease-smooth), visibility 0.7s var(--ease-smooth);
+      gap: 18px;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
     }
-    #loading-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    #loading-overlay.hidden { opacity: 0; visibility: hidden; }
 
-    .loader-ring {
-      width: 52px; height: 52px;
-      position: relative;
-    }
-    .loader-ring::before, .loader-ring::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      border: 2px solid transparent;
-    }
-    .loader-ring::before {
+    .loader-spinner {
+      width: 48px; height: 48px;
+      border: 2px solid var(--border);
       border-top-color: var(--temp-base);
+      border-radius: 50%;
       animation: spin 0.9s linear infinite;
-    }
-    .loader-ring::after {
-      border-bottom-color: var(--hum-base);
-      animation: spin 1.4s linear infinite reverse;
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -169,7 +150,7 @@
       font-family: 'Rajdhani', sans-serif;
       font-size: 22px;
       font-weight: 700;
-      letter-spacing: 0.22em;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--text-primary);
     }
@@ -184,25 +165,9 @@
 
     @keyframes blink { 50% { opacity: 0; } }
 
-    /* Shimmer skeleton */
-    .shimmer {
-      background: linear-gradient(90deg,
-        rgba(255,255,255,0.04) 0%,
-        rgba(255,255,255,0.10) 50%,
-        rgba(255,255,255,0.04) 100%
-      );
-      background-size: 300% 100%;
-      animation: shimmer 1.6s ease-in-out infinite;
-      border-radius: 8px;
-    }
-    @keyframes shimmer {
-      0%   { background-position: 100% 0; }
-      100% { background-position: -100% 0; }
-    }
-
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        REFRESH BAR
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .refresh-bar-wrap {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -211,37 +176,38 @@
     }
     .refresh-bar {
       height: 100%;
-      background: linear-gradient(90deg, var(--hum-base), var(--accent-purple), var(--temp-base));
+      background: linear-gradient(90deg, var(--hum-base), var(--temp-base));
       width: 0%;
       transition: width 0.15s linear;
-      box-shadow: 0 0 8px var(--hum-base);
     }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        FADE-IN ANIMATION
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .fade-in {
       opacity: 0;
-      transform: translateY(18px);
-      animation: fadeUp 0.6s var(--ease-spring) forwards;
+      transform: translateY(16px);
+      animation: fadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
     .fade-in:nth-child(1) { animation-delay: 0.05s; }
     .fade-in:nth-child(2) { animation-delay: 0.12s; }
-    .fade-in:nth-child(3) { animation-delay: 0.19s; }
-    .fade-in:nth-child(4) { animation-delay: 0.26s; }
-    .fade-in:nth-child(5) { animation-delay: 0.33s; }
-    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+    .fade-in:nth-child(3) { animation-delay: 0.18s; }
+    .fade-in:nth-child(4) { animation-delay: 0.24s; }
+    .fade-in:nth-child(5) { animation-delay: 0.30s; }
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        HEADER
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 12px;
-      padding: clamp(20px, 4vw, 44px) 0 clamp(16px, 3vw, 28px);
+      padding: clamp(20px, 4vw, 40px) 0 clamp(16px, 3vw, 28px);
       border-bottom: 1px solid var(--border);
     }
 
@@ -252,23 +218,22 @@
     }
 
     .brand-icon {
-      width: 46px; height: 46px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #1a3560 0%, #0a1830 100%);
-      border: 1px solid rgba(59, 130, 246, 0.25);
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1e3a5f 0%, #0d1f3c 100%);
+      border: 1px solid var(--border-active);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 20px;
-      box-shadow: 0 0 24px rgba(0, 100, 255, 0.18), 0 4px 16px rgba(0,0,0,0.4);
-      flex-shrink: 0;
+      box-shadow: 0 0 20px rgba(0, 100, 255, 0.15);
     }
 
     .brand-text h1 {
       font-family: 'Rajdhani', sans-serif;
-      font-size: clamp(19px, 3vw, 26px);
+      font-size: clamp(20px, 3vw, 26px);
       font-weight: 700;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       background: linear-gradient(90deg, #eef2ff 40%, #8ba7d0 100%);
       -webkit-background-clip: text;
@@ -278,22 +243,21 @@
     }
 
     .brand-text p {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-secondary);
-      letter-spacing: 0.14em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       font-weight: 400;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .header-right {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 16px;
       flex-wrap: wrap;
     }
 
-    /* Buzzer */
     .buzzer-btn {
       display: inline-flex;
       align-items: center;
@@ -301,62 +265,41 @@
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border);
       border-radius: 40px;
-      padding: 7px 15px;
+      padding: 6px 14px;
       font-family: 'DM Mono', monospace;
       font-size: 11px;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--text-primary);
       cursor: pointer;
-      transition: all 0.15s var(--ease-smooth);
+      transition: all 0.15s ease;
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       outline: none;
-      min-height: 36px;
-    }
-
-    .buzzer-btn:hover {
-      background: rgba(255,255,255,0.08);
-      border-color: var(--border-active);
-      transform: scale(1.02);
     }
 
     .buzzer-btn:active, .buzzer-btn.active {
-      background: rgba(255, 107, 53, 0.18);
-      border-color: rgba(255, 107, 53, 0.35);
+      background: rgba(255, 107, 53, 0.15);
+      border-color: rgba(255, 107, 53, 0.3);
       color: var(--temp-base);
-      transform: scale(0.95);
-      box-shadow: 0 0 18px rgba(255, 107, 53, 0.25);
+      transform: scale(0.96);
+      box-shadow: 0 0 15px rgba(255, 107, 53, 0.2);
     }
 
-    /* Last updated */
-    .last-updated {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--text-muted);
-      letter-spacing: 0.06em;
-    }
-
-    /* Live badge */
     .live-badge {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(34, 211, 165, 0.07);
-      border: 1px solid rgba(34, 211, 165, 0.2);
+      background: rgba(34, 211, 165, 0.08);
+      border: 1px solid rgba(34, 211, 165, 0.22);
       border-radius: 40px;
-      padding: 7px 14px 7px 10px;
+      padding: 6px 14px 6px 10px;
       font-family: 'DM Mono', monospace;
       font-size: 11px;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--live-green);
-      transition: box-shadow 0.3s ease;
-    }
-
-    .live-badge:hover {
-      box-shadow: 0 0 16px rgba(34, 211, 165, 0.18);
     }
 
     .live-dot {
@@ -364,636 +307,172 @@
       border-radius: 50%;
       background: var(--live-green);
       animation: pulse-dot 2s ease-in-out infinite;
-      box-shadow: 0 0 8px var(--live-green);
+      box-shadow: 0 0 6px var(--live-green);
     }
 
     @keyframes pulse-dot {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.7); }
+      50%        { opacity: 0.5; transform: scale(0.7); }
     }
 
-    /* ═══════════════════════════════════════════
-       WIFI UI — REDESIGNED
-    ═══════════════════════════════════════════ */
-    .wifi-btn-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .wifi-toggle-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      background: rgba(59, 130, 246, 0.08);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      border-radius: 40px;
-      padding: 7px 14px;
-      font-size: 13px;
-      color: var(--accent-blue);
-      cursor: pointer;
-      transition: all 0.25s var(--ease-spring);
-      outline: none;
+    .last-updated {
       font-family: 'DM Mono', monospace;
       font-size: 11px;
+      color: var(--text-muted);
       letter-spacing: 0.06em;
-      min-height: 36px;
     }
 
-    .wifi-toggle-btn .wifi-icon-svg {
-      width: 16px; height: 16px;
-      flex-shrink: 0;
-    }
-
-    .wifi-toggle-btn:hover {
-      background: rgba(59, 130, 246, 0.16);
-      border-color: rgba(59, 130, 246, 0.35);
-      box-shadow: 0 0 16px rgba(59, 130, 246, 0.22);
-      transform: scale(1.04);
-    }
-
-    .wifi-toggle-btn.active {
-      background: rgba(59, 130, 246, 0.22);
-      border-color: rgba(59, 130, 246, 0.4);
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-    }
-
-    /* ── Dropdown ── */
-    .wifi-dropdown {
-      position: absolute;
-      top: calc(100% + 16px);
-      right: 0;
-      width: 300px;
-      background: rgba(8, 14, 28, 0.92);
-      backdrop-filter: blur(32px) saturate(180%);
-      -webkit-backdrop-filter: blur(32px) saturate(180%);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      border-radius: 20px;
-      box-shadow:
-        0 16px 48px rgba(0,0,0,0.7),
-        0 0 0 1px rgba(255,255,255,0.04) inset,
-        0 1px 0 rgba(255,255,255,0.08) inset;
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(-8px) scale(0.97);
-      transform-origin: top right;
-      transition:
-        opacity 0.3s var(--ease-spring),
-        transform 0.3s var(--ease-spring),
-        visibility 0.3s;
-      z-index: 200;
-      overflow: hidden;
-    }
-
-    /* Pointer arrow */
-    .wifi-dropdown::before {
-      content: '';
-      position: absolute;
-      top: -8px;
-      right: 20px;
-      width: 14px; height: 8px;
-      background: rgba(8, 14, 28, 0.92);
-      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-      filter: drop-shadow(0 -2px 4px rgba(0,0,0,0.4));
-    }
-
-    .wifi-dropdown.open {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0) scale(1);
-    }
-
-    .wifi-dropdown-header {
-      padding: 14px 18px 12px;
-      border-bottom: 1px solid var(--border);
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      background: rgba(59,130,246,0.05);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .wifi-dropdown-header .wifi-refresh-indicator {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--accent-blue);
-      animation: pulse-dot 2s ease-in-out infinite;
-    }
-
-    .wifi-dropdown-body {
-      max-height: 280px;
-      overflow-y: auto;
-      padding: 6px 0;
-    }
-
-    .wifi-dropdown-body::-webkit-scrollbar { width: 3px; }
-    .wifi-dropdown-body::-webkit-scrollbar-track { background: transparent; }
-    .wifi-dropdown-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
-
-    .wifi-item {
-      padding: 11px 18px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      transition: background 0.2s var(--ease-smooth);
-      gap: 10px;
-      min-height: 52px;
-    }
-
-    .wifi-item:hover { background: rgba(59,130,246,0.07); }
-    .wifi-item.wifi-item-connected { background: rgba(34,211,165,0.05); }
-
-    .wifi-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-
-    .wifi-ssid {
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .wifi-meta {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .wifi-status-text {
-      font-size: 10px;
-      color: var(--text-muted);
-      letter-spacing: 0.05em;
-    }
-
-    .wifi-status-text.connected { color: var(--live-green); }
-
-    .wifi-tag {
-      font-size: 9px;
-      padding: 1px 6px;
-      border-radius: 4px;
-      letter-spacing: 0.08em;
-      font-family: 'DM Mono', monospace;
-    }
-
-    .wifi-tag-secure {
-      background: rgba(139,92,246,0.15);
-      border: 1px solid rgba(139,92,246,0.2);
-      color: #a78bfa;
-    }
-
-    .wifi-tag-open {
-      background: rgba(34,211,165,0.12);
-      border: 1px solid rgba(34,211,165,0.2);
-      color: var(--live-green);
-    }
-
-    /* Signal bars SVG */
-    .wifi-signal-bars {
-      display: flex;
-      align-items: flex-end;
-      gap: 2px;
-      height: 16px;
-      flex-shrink: 0;
-    }
-
-    .wifi-signal-bars span {
-      display: block;
-      width: 4px;
-      border-radius: 2px;
-      background: rgba(255,255,255,0.15);
-      transition: background 0.3s ease;
-    }
-
-    .wifi-signal-bars span:nth-child(1) { height: 4px; }
-    .wifi-signal-bars span:nth-child(2) { height: 8px; }
-    .wifi-signal-bars span:nth-child(3) { height: 12px; }
-    .wifi-signal-bars span:nth-child(4) { height: 16px; }
-
-    /* Signal strength colours applied via JS classes */
-    .sig-4 span:nth-child(1),
-    .sig-4 span:nth-child(2),
-    .sig-4 span:nth-child(3),
-    .sig-4 span:nth-child(4) { background: #22d3a5; }
-
-    .sig-3 span:nth-child(1),
-    .sig-3 span:nth-child(2),
-    .sig-3 span:nth-child(3) { background: #22d3a5; }
-
-    .sig-2 span:nth-child(1),
-    .sig-2 span:nth-child(2) { background: #f59e0b; }
-
-    .sig-1 span:nth-child(1) { background: #ef4444; }
-
-    /* ── WiFi Modal ── */
-    .wifi-modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.65);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1500;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s var(--ease-smooth), visibility 0.3s;
-    }
-
-    .wifi-modal-overlay.open {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .wifi-modal {
-      background: rgba(10, 16, 30, 0.96);
-      border: 1px solid rgba(59, 130, 246, 0.22);
-      border-radius: 24px;
-      padding: 32px;
-      width: 90%;
-      max-width: 360px;
-      transform: translateY(20px) scale(0.96);
-      transition: transform 0.35s var(--ease-spring);
-      box-shadow: var(--shadow-elevated);
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .wifi-modal::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(59,130,246,0.4), transparent);
-    }
-
-    .wifi-modal-overlay.open .wifi-modal {
-      transform: translateY(0) scale(1);
-    }
-
-    .wifi-modal-icon {
-      font-size: 32px;
-      margin-bottom: 12px;
-    }
-
-    .wifi-modal-title {
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: 0.1em;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-    }
-
-    .wifi-modal-ssid {
-      font-family: 'DM Mono', monospace;
-      font-size: 13px;
-      color: var(--accent-blue);
-      margin-bottom: 24px;
-      padding: 6px 12px;
-      background: rgba(59,130,246,0.08);
-      border-radius: 8px;
-      display: inline-block;
-    }
-
-    .wifi-pwd-wrap {
-      position: relative;
-      margin-bottom: 20px;
-    }
-
-    .wifi-modal-input {
-      width: 100%;
-      background: rgba(0,0,0,0.35);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 13px 44px 13px 16px;
-      color: var(--text-primary);
-      font-family: 'DM Mono', monospace;
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.25s ease, box-shadow 0.25s ease;
-      text-align: left;
-    }
-
-    .wifi-modal-input::placeholder { color: var(--text-muted); }
-
-    .wifi-modal-input:focus {
-      border-color: rgba(59,130,246,0.5);
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
-    }
-
-    .wifi-pwd-toggle {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--text-muted);
-      font-size: 16px;
-      padding: 4px;
-      transition: color 0.2s;
-      line-height: 1;
-    }
-
-    .wifi-pwd-toggle:hover { color: var(--text-secondary); }
-
-    .wifi-modal-buttons {
-      display: flex;
-      gap: 10px;
-    }
-
-    .wifi-modal-btn {
-      flex: 1;
-      padding: 12px;
-      border-radius: 12px;
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s var(--ease-spring);
-      font-weight: 500;
-      min-height: 44px;
-    }
-
-    .wifi-modal-btn:active { transform: scale(0.96); }
-
-    .wifi-modal-btn.cancel {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
-    }
-
-    .wifi-modal-btn.cancel:hover {
-      background: rgba(255,255,255,0.1);
-      color: var(--text-primary);
-    }
-
-    .wifi-modal-btn.connect {
-      background: linear-gradient(135deg, rgba(59,130,246,0.9) 0%, rgba(99,102,241,0.9) 100%);
-      color: #fff;
-      box-shadow: 0 4px 16px rgba(59,130,246,0.3);
-    }
-
-    .wifi-modal-btn.connect:hover {
-      box-shadow: 0 6px 24px rgba(59,130,246,0.45);
-      transform: translateY(-1px);
-    }
-
-    .wifi-modal-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    /* Modal states */
-    .wifi-modal-status {
-      display: none;
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      margin-bottom: 16px;
-      padding: 8px 14px;
-      border-radius: 10px;
-    }
-
-    .wifi-modal-status.connecting {
-      display: block;
-      background: rgba(59,130,246,0.1);
-      border: 1px solid rgba(59,130,246,0.2);
-      color: var(--accent-blue);
-    }
-
-    .wifi-modal-status.success {
-      display: block;
-      background: rgba(34,211,165,0.1);
-      border: 1px solid rgba(34,211,165,0.2);
-      color: var(--live-green);
-    }
-
-    .wifi-modal-status.error {
-      display: block;
-      background: rgba(239,68,68,0.1);
-      border: 1px solid rgba(239,68,68,0.2);
-      color: #ef4444;
-    }
-
-    /* ── Mobile WiFi Bottom Sheet ── */
-    .wifi-sheet-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(8px);
-      z-index: 300;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .wifi-sheet-overlay.open { opacity: 1; }
-
-    .wifi-sheet {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: rgba(10, 16, 30, 0.98);
-      backdrop-filter: blur(32px);
-      border-top: 1px solid rgba(59,130,246,0.2);
-      border-radius: 24px 24px 0 0;
-      padding: 12px 0 env(safe-area-inset-bottom, 20px);
-      transform: translateY(100%);
-      transition: transform 0.4s var(--ease-spring);
-      z-index: 301;
-      max-height: 75vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .wifi-sheet.open { transform: translateY(0); }
-
-    .wifi-sheet-handle {
-      width: 40px; height: 4px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 2px;
-      margin: 0 auto 16px;
-    }
-
-    .wifi-sheet-title {
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      padding: 0 20px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .wifi-sheet-body {
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        ERROR BANNER
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     #error-banner {
-      display: none;
+      display: flex;
       align-items: center;
       gap: 10px;
       background: rgba(239, 68, 68, 0.08);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      border-radius: 12px;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: var(--radius-inner);
       padding: 10px 16px;
-      margin-top: 14px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #fca5a5;
       font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: #ef4444;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.05em;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
     }
+    #error-banner.visible { opacity: 1; pointer-events: auto; }
 
-    #error-banner.visible { display: flex; }
-    #error-banner span:first-child { font-size: 14px; flex-shrink: 0; }
-
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        TAB NAVIGATION
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .tab-nav {
       display: flex;
-      gap: 4px;
-      margin-top: clamp(20px, 3.5vw, 36px);
-      background: rgba(255,255,255,0.025);
-      border: 1px solid var(--border);
-      border-radius: 16px;
+      gap: 6px;
+      margin-top: 28px;
       padding: 5px;
-      overflow-x: auto;
-      scrollbar-width: none;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      width: fit-content;
+      flex-wrap: wrap;
     }
-
-    .tab-nav::-webkit-scrollbar { display: none; }
 
     .tab-btn {
-      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       padding: 8px 18px;
-      border-radius: 12px;
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
+      border-radius: 40px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      background: transparent;
-      border: 1px solid transparent;
       color: var(--text-secondary);
+      background: transparent;
+      border: none;
       cursor: pointer;
-      transition: all 0.25s var(--ease-spring);
+      transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
       white-space: nowrap;
-      min-height: 36px;
     }
 
-    .tab-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+    .tab-btn:hover { color: var(--text-primary); }
 
     .tab-btn.active {
-      background: linear-gradient(135deg, rgba(59,130,246,0.22) 0%, rgba(139,92,246,0.16) 100%);
+      background: linear-gradient(135deg, rgba(59,130,246,0.22) 0%, rgba(139,92,246,0.18) 100%);
       color: var(--text-primary);
-      border-color: rgba(59,130,246,0.25);
-      box-shadow: 0 2px 14px rgba(59,130,246,0.15);
+      border: 1px solid rgba(59,130,246,0.25);
+      box-shadow: 0 2px 12px rgba(59,130,246,0.15);
     }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        TAB PANELS
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .tab-panel {
       display: none;
-      animation: tabFadeIn 0.4s var(--ease-spring) forwards;
+      animation: tabFadeIn 0.35s ease forwards;
     }
     .tab-panel.active { display: block; }
 
     @keyframes tabFadeIn {
-      from { opacity: 0; transform: translateY(12px); }
+      from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        SECTION LABEL
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .section-label {
       font-family: 'Rajdhani', sans-serif;
       font-size: 11px;
       font-weight: 600;
-      letter-spacing: 0.22em;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        HERO CARDS (LIVE TAB)
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .hero-section { margin-top: clamp(24px, 4vw, 44px); }
 
     .cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-      gap: clamp(12px, 2.5vw, 24px);
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+      gap: clamp(14px, 2.5vw, 24px);
     }
 
-    /* Glass card base */
-    .metric-card, .chart-card, .analytics-chart-wrap {
-      background: rgba(255, 255, 255, 0.028);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255,255,255,0.07);
+    .metric-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 1px solid var(--border);
       border-radius: var(--radius-card);
-      padding: clamp(22px, 3.5vw, 36px);
-      box-shadow:
-        0 8px 40px rgba(0,0,0,0.4),
-        0 1px 0 rgba(255,255,255,0.05) inset;
+      padding: clamp(24px, 3.5vw, 36px);
+      box-shadow: var(--shadow-card);
       position: relative;
       overflow: hidden;
-      transition:
-        transform 0.4s var(--ease-spring),
-        border-color 0.3s ease,
-        box-shadow 0.4s ease;
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                  border-color 0.3s ease,
+                  box-shadow 0.35s ease;
       cursor: default;
     }
 
-    /* Inner top-edge highlight */
-    .metric-card::before, .chart-card::before {
+    .metric-card:hover {
+      transform: translateY(-6px) scale(1.01);
+      border-color: var(--border-active);
+    }
+
+    .metric-card::before {
       content: '';
       position: absolute;
-      top: 0; left: 16px; right: 16px;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: var(--radius-card) var(--radius-card) 0 0;
     }
 
-    .metric-card:hover {
-      transform: translateY(-5px);
-      border-color: rgba(255,255,255,0.13);
-      box-shadow:
-        0 20px 60px rgba(0,0,0,0.5),
-        0 1px 0 rgba(255,255,255,0.07) inset;
+    .card-temp::before   { background: linear-gradient(90deg, var(--temp-base), var(--temp-mid), transparent); }
+    .card-humid::before  { background: linear-gradient(90deg, var(--hum-base), var(--hum-mid), transparent); }
+
+    .metric-card::after {
+      content: '';
+      position: absolute;
+      top: -30%; right: -10%;
+      width: 60%; height: 80%;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.5;
+      pointer-events: none;
     }
 
-    .chart-card:hover, .analytics-chart-wrap:hover {
-      transform: translateY(-3px);
-      border-color: rgba(255,255,255,0.11);
-      box-shadow: 0 16px 50px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset;
-    }
+    .card-temp::after  { background: var(--temp-glow-soft); }
+    .card-humid::after { background: var(--hum-glow-soft); }
 
-    /* Card-specific hover glow */
-    .card-temp:hover  { box-shadow: 0 16px 50px rgba(0,0,0,0.45), 0 0 30px var(--temp-glow-soft) inset; }
-    .card-humid:hover { box-shadow: 0 16px 50px rgba(0,0,0,0.45), 0 0 30px var(--hum-glow-soft) inset; }
+    .metric-card:hover.card-temp  { box-shadow: var(--shadow-card), 0 0 60px var(--temp-glow); }
+    .metric-card:hover.card-humid { box-shadow: var(--shadow-card), 0 0 60px var(--hum-glow); }
 
     .card-header {
       display: flex;
@@ -1008,55 +487,50 @@
       font-family: 'Rajdhani', sans-serif;
       font-size: 12px;
       font-weight: 600;
-      letter-spacing: 0.24em;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--text-secondary);
     }
 
     .card-icon-wrap {
-      width: 50px; height: 50px;
-      border-radius: 16px;
+      width: 48px; height: 48px;
+      border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 22px;
-      transition: transform 0.35s var(--ease-spring);
+      transition: transform 0.3s ease;
     }
 
-    .metric-card:hover .card-icon-wrap { transform: rotate(8deg) scale(1.12); }
+    .metric-card:hover .card-icon-wrap { transform: rotate(8deg) scale(1.1); }
 
-    .card-temp  .card-icon-wrap { background: rgba(255,107,53,0.14); box-shadow: 0 0 24px rgba(255,107,53,0.22); }
-    .card-humid .card-icon-wrap { background: rgba(0,198,255,0.12);  box-shadow: 0 0 24px rgba(0,198,255,0.2); }
+    .card-temp  .card-icon-wrap { background: rgba(255,107,53,0.14); box-shadow: 0 0 20px rgba(255,107,53,0.2); }
+    .card-humid .card-icon-wrap { background: rgba(0,198,255,0.12);  box-shadow: 0 0 20px rgba(0,198,255,0.18); }
 
     .card-value-block { position: relative; z-index: 1; }
 
     .value-number {
       font-family: 'DM Mono', monospace;
-      font-size: clamp(52px, 9vw, 82px);
+      font-size: clamp(52px, 9vw, 80px);
       font-weight: 500;
       line-height: 1;
       letter-spacing: -0.02em;
-      transition: opacity 0.25s ease, transform 0.3s var(--ease-spring);
-      will-change: transform, opacity;
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22,1,0.36,1);
     }
 
-    .value-number.updating { opacity: 0.35; transform: scale(0.96) translateY(4px); }
+    .value-number.updating { opacity: 0.4; transform: scale(0.97); }
 
-    .card-temp  .value-number {
-      color: var(--temp-base);
-      text-shadow: 0 0 48px rgba(255,107,53,0.55), 0 0 96px rgba(255,107,53,0.2);
-    }
-    .card-humid .value-number {
-      color: var(--hum-base);
-      text-shadow: 0 0 48px rgba(0,198,255,0.55), 0 0 96px rgba(0,198,255,0.2);
-    }
+    .card-temp  .value-number { color: var(--temp-base);
+      text-shadow: 0 0 40px rgba(255,107,53,0.5), 0 0 80px rgba(255,107,53,0.2); }
+    .card-humid .value-number { color: var(--hum-base);
+      text-shadow: 0 0 40px rgba(0,198,255,0.5),  0 0 80px rgba(0,198,255,0.2); }
 
     .value-unit {
       font-family: 'Rajdhani', sans-serif;
-      font-size: clamp(22px, 3.5vw, 30px);
+      font-size: clamp(22px, 3.5vw, 28px);
       font-weight: 600;
       vertical-align: super;
-      opacity: 0.6;
+      opacity: 0.65;
       margin-left: 4px;
     }
 
@@ -1064,16 +538,16 @@
       font-size: 12px;
       color: var(--text-secondary);
       letter-spacing: 0.06em;
-      margin-top: 10px;
+      margin-top: 8px;
       font-weight: 400;
     }
 
     .status-chip {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      margin-top: 18px;
-      padding: 5px 12px;
+      gap: 5px;
+      margin-top: 16px;
+      padding: 4px 10px;
       border-radius: 30px;
       font-size: 11px;
       font-weight: 500;
@@ -1087,49 +561,45 @@
     .card-temp  .chip-dot    { background: var(--temp-mid); }
     .card-humid .chip-dot    { background: var(--hum-base); }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        STATS ROW
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: clamp(8px, 1.5vw, 14px);
     }
 
     .stat-box {
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-inner);
       padding: clamp(12px, 2vw, 18px);
       text-align: center;
-      transition: border-color 0.3s ease, transform 0.3s var(--ease-spring), box-shadow 0.3s ease;
+      transition: border-color 0.25s ease, transform 0.25s ease;
     }
 
-    .stat-box:hover {
-      border-color: var(--border-active);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-    }
+    .stat-box:hover { border-color: var(--border-active); transform: translateY(-2px); }
 
     .stat-label {
       font-family: 'Rajdhani', sans-serif;
       font-size: 10px;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .stat-value {
       font-family: 'DM Mono', monospace;
-      font-size: clamp(15px, 3vw, 21px);
+      font-size: clamp(16px, 3vw, 22px);
       font-weight: 500;
       color: var(--text-primary);
     }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        CHART SECTION
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .charts-section {
       margin-top: clamp(28px, 4vw, 48px);
       margin-bottom: clamp(16px, 3vw, 32px);
@@ -1137,9 +607,34 @@
 
     .charts-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
-      gap: clamp(12px, 2.5vw, 24px);
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+      gap: clamp(14px, 2.5vw, 24px);
     }
+
+    .chart-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: clamp(20px, 3vw, 30px);
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    .chart-card:hover { border-color: var(--border-active); transform: translateY(-3px); }
+
+    .chart-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+    }
+
+    .chart-temp::before  { background: linear-gradient(90deg, var(--temp-base), transparent); }
+    .chart-humid::before { background: linear-gradient(90deg, var(--hum-base), transparent); }
 
     .chart-header {
       display: flex;
@@ -1151,14 +646,14 @@
     .chart-title-wrap { display: flex; align-items: center; gap: 10px; }
 
     .chart-dot { width: 10px; height: 10px; border-radius: 50%; }
-    .chart-temp  .chart-dot { background: var(--temp-base); box-shadow: 0 0 10px var(--temp-base); }
-    .chart-humid .chart-dot { background: var(--hum-base);  box-shadow: 0 0 10px var(--hum-base); }
+    .chart-temp  .chart-dot { background: var(--temp-base); box-shadow: 0 0 8px var(--temp-base); }
+    .chart-humid .chart-dot { background: var(--hum-base);  box-shadow: 0 0 8px var(--hum-base); }
 
     .chart-title {
       font-family: 'Rajdhani', sans-serif;
       font-size: 14px;
       font-weight: 700;
-      letter-spacing: 0.14em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--text-primary);
     }
@@ -1166,7 +661,7 @@
     .chart-badge {
       font-family: 'DM Mono', monospace;
       font-size: 10px;
-      padding: 3px 10px;
+      padding: 3px 9px;
       border-radius: 20px;
       letter-spacing: 0.06em;
     }
@@ -1176,9 +671,9 @@
 
     .chart-canvas-wrap { height: 180px; position: relative; }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        SMART INSIGHTS
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .insights-section {
       margin-top: clamp(20px, 3vw, 36px);
       margin-bottom: clamp(24px, 4vw, 48px);
@@ -1186,7 +681,7 @@
 
     .insights-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
       gap: clamp(10px, 2vw, 16px);
     }
 
@@ -1194,42 +689,48 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-inner);
-      padding: 18px 20px;
+      padding: 16px 20px;
       display: flex;
       align-items: flex-start;
       gap: 14px;
-      transition: border-color 0.3s ease, transform 0.3s var(--ease-spring), box-shadow 0.3s ease;
+      transition: border-color 0.25s, transform 0.25s;
     }
 
-    .insight-card:hover {
-      border-color: var(--border-active);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    .insight-card:hover { border-color: var(--border-active); transform: translateY(-2px); }
+
+    .insight-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 1px;
     }
 
-    .insight-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .insight-body {}
 
     .insight-title {
       font-family: 'DM Mono', monospace;
-      font-size: 10px;
+      font-size: 11px;
       color: var(--text-muted);
-      letter-spacing: 0.1em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
     }
 
-    .insight-text { font-size: 13px; color: var(--text-primary); line-height: 1.5; }
+    .insight-text {
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.45;
+    }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        ANALYTICS TAB
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .analytics-section { margin-top: clamp(24px, 4vw, 40px); }
 
     .analytics-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       flex-wrap: wrap;
       gap: 12px;
     }
@@ -1239,13 +740,15 @@
       font-size: 12px;
       color: var(--text-secondary);
       letter-spacing: 0.08em;
-      margin-top: 4px;
     }
 
-    .period-btns { display: flex; gap: 4px; }
+    .period-btns {
+      display: flex;
+      gap: 4px;
+    }
 
     .period-btn {
-      padding: 7px 14px;
+      padding: 5px 12px;
       border-radius: 20px;
       font-family: 'DM Mono', monospace;
       font-size: 10px;
@@ -1255,8 +758,7 @@
       background: transparent;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.25s var(--ease-spring);
-      min-height: 36px;
+      transition: all 0.2s;
     }
 
     .period-btn.active {
@@ -1265,15 +767,11 @@
       color: var(--accent-blue);
     }
 
-    .period-btn:hover:not(.active) {
-      color: var(--text-primary);
-      border-color: var(--border-active);
-      transform: translateY(-1px);
-    }
+    .period-btn:hover:not(.active) { color: var(--text-primary); border-color: var(--border-active); }
 
     .analytics-stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: clamp(10px, 2vw, 16px);
       margin-bottom: 24px;
     }
@@ -1282,29 +780,33 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-inner);
-      padding: 20px;
+      padding: 18px 20px;
       position: relative;
       overflow: hidden;
-      transition: border-color 0.3s ease, transform 0.3s var(--ease-spring);
+      transition: border-color 0.25s, transform 0.25s;
     }
+
+    .analytics-stat-card:hover { border-color: var(--border-active); transform: translateY(-2px); }
 
     .analytics-stat-card::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
     }
 
-    .analytics-stat-card:hover { border-color: var(--border-active); transform: translateY(-2px); }
+    .asc-temp::before { background: linear-gradient(90deg, var(--temp-base), transparent); }
+    .asc-hum::before  { background: linear-gradient(90deg, var(--hum-base), transparent); }
+    .asc-alert::before { background: linear-gradient(90deg, #ef4444, transparent); }
+    .asc-generic::before { background: linear-gradient(90deg, var(--accent-purple), transparent); }
 
     .asc-label {
       font-family: 'Rajdhani', sans-serif;
       font-size: 10px;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .asc-value {
@@ -1319,7 +821,21 @@
     .asc-alert .asc-value { color: #ef4444; }
     .asc-generic .asc-value { color: var(--accent-purple); }
 
-    .asc-sub { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+    .asc-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .analytics-chart-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: clamp(20px, 3vw, 30px);
+      margin-bottom: 20px;
+    }
+
+    .analytics-chart-wrap canvas { height: 220px !important; }
 
     .analytics-minmax-grid {
       display: grid;
@@ -1331,14 +847,11 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-inner);
-      padding: 16px 20px;
+      padding: 14px 18px;
       display: flex;
       align-items: center;
       gap: 12px;
-      transition: border-color 0.25s ease;
     }
-
-    .minmax-card:hover { border-color: var(--border-active); }
 
     .minmax-label {
       font-family: 'Rajdhani', sans-serif;
@@ -1357,16 +870,18 @@
 
     .analytics-no-data {
       text-align: center;
-      padding: 64px 20px;
+      padding: 60px 20px;
       color: var(--text-muted);
       font-family: 'DM Mono', monospace;
       font-size: 12px;
       letter-spacing: 0.1em;
     }
 
-    /* ═══════════════════════════════════════════
+    .analytics-no-data .nd-icon { font-size: 36px; display: block; margin-bottom: 12px; }
+
+    /* ─────────────────────────────────────────────
        CALENDAR TAB
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .calendar-section { margin-top: clamp(24px, 4vw, 40px); }
 
     .calendar-controls {
@@ -1378,7 +893,7 @@
     }
 
     .cal-nav-btn {
-      width: 38px; height: 38px;
+      width: 36px; height: 36px;
       border-radius: 50%;
       border: 1px solid var(--border);
       background: var(--bg-card);
@@ -1388,14 +903,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.25s var(--ease-spring);
+      transition: all 0.2s;
     }
 
-    .cal-nav-btn:hover {
-      border-color: var(--border-active);
-      color: var(--text-primary);
-      transform: scale(1.06);
-    }
+    .cal-nav-btn:hover { border-color: var(--border-active); color: var(--text-primary); }
 
     .cal-month-label {
       font-family: 'Rajdhani', sans-serif;
@@ -1411,7 +922,7 @@
     .calendar-legend {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       margin-left: auto;
       font-family: 'DM Mono', monospace;
       font-size: 10px;
@@ -1420,8 +931,8 @@
     }
 
     .legend-gradient {
-      width: 80px; height: 8px;
-      border-radius: 4px;
+      width: 80px; height: 10px;
+      border-radius: 5px;
       background: linear-gradient(90deg, #3b82f6, #22d3a5, #f59e0b, #ef4444);
     }
 
@@ -1467,21 +978,21 @@
       justify-content: center;
       gap: 2px;
       cursor: pointer;
-      transition: transform 0.25s var(--ease-spring), box-shadow 0.25s ease;
+      transition: transform 0.2s, box-shadow 0.2s;
       position: relative;
       border: 1px solid transparent;
     }
 
     .cal-cell:hover {
-      transform: scale(1.14);
+      transform: scale(1.12);
       z-index: 10;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.5);
-      border-color: rgba(255,255,255,0.16);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      border-color: rgba(255,255,255,0.15);
     }
 
     .cal-cell.empty { background: transparent; cursor: default; pointer-events: none; }
-    .cal-cell.no-data { background: rgba(255,255,255,0.025); border: 1px dashed rgba(255,255,255,0.05); }
-    .cal-cell.today { border-color: rgba(255,255,255,0.3) !important; box-shadow: 0 0 14px rgba(59,130,246,0.28); }
+    .cal-cell.no-data { background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.05); }
+    .cal-cell.today { border-color: rgba(255,255,255,0.3) !important; box-shadow: 0 0 12px rgba(59,130,246,0.25); }
 
     .cal-cell .cal-date {
       font-family: 'DM Mono', monospace;
@@ -1491,7 +1002,12 @@
     }
 
     .cal-cell.no-data .cal-date { color: var(--text-muted); }
-    .cal-cell .cal-temp { font-family: 'DM Mono', monospace; font-size: 9px; color: rgba(255,255,255,0.6); }
+
+    .cal-cell .cal-temp {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: rgba(255,255,255,0.6);
+    }
 
     /* Calendar detail panel */
     .cal-detail {
@@ -1501,7 +1017,7 @@
       padding: 24px 28px;
       margin-top: 16px;
       display: none;
-      animation: tabFadeIn 0.3s var(--ease-spring) forwards;
+      animation: tabFadeIn 0.3s ease forwards;
     }
 
     .cal-detail.visible { display: block; }
@@ -1526,11 +1042,10 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--text-secondary);
-      font-size: 13px;
-      padding: 5px 12px;
+      font-size: 14px;
+      padding: 4px 10px;
       cursor: pointer;
-      transition: all 0.2s ease;
-      font-family: 'DM Mono', monospace;
+      transition: all 0.2s;
     }
 
     .cal-close-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
@@ -1538,87 +1053,95 @@
     .cal-detail-stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 12px;
+      gap: 10px;
     }
 
     .cal-stat {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-inner);
-      padding: 14px 16px;
       text-align: center;
+      background: rgba(255,255,255,0.03);
+      border-radius: var(--radius-inner);
+      padding: 12px;
     }
 
     .cal-stat-label {
       font-family: 'Rajdhani', sans-serif;
-      font-size: 10px;
-      letter-spacing: 0.18em;
+      font-size: 9px;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
 
     .cal-stat-value {
       font-family: 'DM Mono', monospace;
-      font-size: 18px;
+      font-size: 16px;
+      font-weight: 500;
       color: var(--text-primary);
     }
 
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        ENVIRONMENT TAB
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     .env-section { margin-top: clamp(24px, 4vw, 40px); }
 
     .env-permission-banner {
-      background: rgba(255,255,255,0.025);
-      border: 1px dashed rgba(255,255,255,0.1);
+      background: linear-gradient(135deg, rgba(34,211,165,0.08) 0%, rgba(59,130,246,0.06) 100%);
+      border: 1px solid rgba(34,211,165,0.2);
       border-radius: var(--radius-card);
-      padding: 48px 32px;
+      padding: 36px;
       text-align: center;
+      margin-bottom: 24px;
     }
 
-    .env-perm-icon { font-size: 40px; display: block; margin-bottom: 16px; }
+    .env-permission-banner.hidden { display: none; }
+
+    .env-perm-icon { font-size: 42px; display: block; margin-bottom: 14px; }
+
     .env-perm-title {
       font-family: 'Rajdhani', sans-serif;
       font-size: 20px;
       font-weight: 700;
       letter-spacing: 0.08em;
+      text-transform: uppercase;
       color: var(--text-primary);
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .env-perm-sub {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-secondary);
-      max-width: 380px;
-      margin: 0 auto 24px;
-      line-height: 1.6;
+      margin-bottom: 20px;
+      line-height: 1.5;
     }
 
     .env-grant-btn {
-      background: linear-gradient(135deg, rgba(59,130,246,0.9), rgba(99,102,241,0.9));
-      border: none;
-      border-radius: 12px;
-      padding: 13px 28px;
-      color: #fff;
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      letter-spacing: 0.1em;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, rgba(34,211,165,0.2) 0%, rgba(59,130,246,0.15) 100%);
+      border: 1px solid rgba(34,211,165,0.3);
+      border-radius: 30px;
+      padding: 10px 24px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--env-base);
       cursor: pointer;
-      transition: all 0.25s var(--ease-spring);
-      box-shadow: 0 6px 24px rgba(59,130,246,0.3);
+      transition: all 0.2s;
     }
 
     .env-grant-btn:hover {
-      box-shadow: 0 10px 36px rgba(59,130,246,0.45);
-      transform: translateY(-2px);
+      background: linear-gradient(135deg, rgba(34,211,165,0.3) 0%, rgba(59,130,246,0.22) 100%);
+      box-shadow: 0 0 20px rgba(34,211,165,0.2);
     }
 
     .env-api-note {
       font-family: 'DM Mono', monospace;
       font-size: 10px;
       color: var(--text-muted);
-      margin-top: 14px;
+      margin-top: 12px;
       letter-spacing: 0.06em;
     }
 
@@ -1627,8 +1150,8 @@
 
     .env-cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-      gap: clamp(12px, 2.5vw, 20px);
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+      gap: clamp(14px, 2.5vw, 20px);
       margin-bottom: 24px;
     }
 
@@ -1639,31 +1162,40 @@
       padding: 24px;
       position: relative;
       overflow: hidden;
-      transition: border-color 0.3s ease, transform 0.35s var(--ease-spring), box-shadow 0.3s ease;
+      transition: border-color 0.25s, transform 0.25s;
     }
 
-    .env-card:hover {
-      border-color: var(--border-active);
-      transform: translateY(-3px);
-      box-shadow: 0 16px 48px rgba(0,0,0,0.35);
+    .env-card:hover { border-color: var(--border-active); transform: translateY(-3px); }
+
+    .env-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
     }
+
+    .env-card-weather::before { background: linear-gradient(90deg, var(--env-base), transparent); }
+    .env-card-aqi::before     { background: linear-gradient(90deg, var(--aqi-moderate), transparent); }
+    .env-card-compare::before { background: linear-gradient(90deg, var(--accent-purple), transparent); }
 
     .env-card-label {
       font-family: 'Rajdhani', sans-serif;
       font-size: 10px;
-      letter-spacing: 0.22em;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .env-main-value {
       font-family: 'DM Mono', monospace;
-      font-size: clamp(36px, 7vw, 54px);
+      font-size: clamp(38px, 7vw, 56px);
       font-weight: 500;
       line-height: 1;
       color: var(--env-base);
     }
+
+    .env-card-weather .env-main-value { color: var(--env-base); }
 
     .env-unit {
       font-family: 'Rajdhani', sans-serif;
@@ -1674,7 +1206,11 @@
       margin-left: 3px;
     }
 
-    .env-sub { font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+    .env-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
 
     .env-details-row {
       display: flex;
@@ -1689,20 +1225,24 @@
       color: var(--text-muted);
     }
 
-    .env-detail-item span { color: var(--text-secondary); margin-left: 4px; }
+    .env-detail-item span {
+      color: var(--text-secondary);
+      margin-left: 4px;
+    }
 
+    /* AQI specific */
     .aqi-bar-wrap {
       margin-top: 14px;
       background: rgba(255,255,255,0.04);
       border-radius: 8px;
-      height: 6px;
+      height: 8px;
       overflow: hidden;
     }
 
     .aqi-bar {
       height: 100%;
       border-radius: 8px;
-      transition: width 0.7s var(--ease-spring);
+      transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
     }
 
     .aqi-category {
@@ -1711,22 +1251,27 @@
       margin-top: 8px;
       letter-spacing: 0.08em;
     }
-
+    
+    /* New AQI Advice specific */
     .env-aqi-advice {
       font-family: 'Outfit', sans-serif;
-      font-size: 12px;
+      font-size: 11px;
       margin-top: 6px;
       color: var(--text-secondary);
     }
 
+    /* Comparison card */
     .compare-row {
       display: flex;
       align-items: center;
       gap: 14px;
-      margin-top: 12px;
+      margin-top: 10px;
     }
 
-    .compare-val { text-align: center; flex: 1; }
+    .compare-val {
+      text-align: center;
+      flex: 1;
+    }
 
     .compare-val-label {
       font-family: 'Rajdhani', sans-serif;
@@ -1734,14 +1279,13 @@
       letter-spacing: 0.15em;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .compare-val-number {
       font-family: 'DM Mono', monospace;
       font-size: 28px;
       font-weight: 500;
-      transition: color 0.4s ease;
     }
 
     .compare-vs {
@@ -1755,13 +1299,13 @@
 
     .compare-insight {
       margin-top: 16px;
-      padding: 12px 16px;
-      background: rgba(139,92,246,0.07);
-      border: 1px solid rgba(139,92,246,0.16);
+      padding: 10px 14px;
+      background: rgba(139,92,246,0.08);
+      border: 1px solid rgba(139,92,246,0.18);
       border-radius: var(--radius-inner);
       font-size: 12px;
       color: var(--text-secondary);
-      line-height: 1.55;
+      line-height: 1.5;
     }
 
     .env-location-info {
@@ -1776,17 +1320,15 @@
 
     .env-loading {
       text-align: center;
-      padding: 48px;
+      padding: 40px;
       font-family: 'DM Mono', monospace;
       font-size: 12px;
       color: var(--text-muted);
     }
 
-    .env-permission-banner.hidden { display: none; }
-
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        FOOTER
-    ═══════════════════════════════════════════ */
+    ───────────────────────────────────────────── */
     footer {
       border-top: 1px solid var(--border);
       padding: 20px 0;
@@ -1811,49 +1353,33 @@
       gap: 8px;
     }
 
-    .footer-dot {
-      width: 4px; height: 4px;
-      border-radius: 50%;
-      background: var(--live-green);
-      box-shadow: 0 0 6px var(--live-green);
-      animation: pulse-dot 2s ease-in-out infinite;
-    }
-
-    /* ═══════════════════════════════════════════
+    /* ─────────────────────────────────────────────
        RESPONSIVE
-    ═══════════════════════════════════════════ */
-    @media (max-width: 480px) {
-      .tab-nav { gap: 2px; padding: 4px; }
-      .tab-btn { padding: 7px 12px; font-size: 10px; }
-      .header-right { gap: 8px; }
+    ───────────────────────────────────────────── */
+    @media (max-width: 580px) {
+      .tab-nav { gap: 3px; padding: 4px; }
+      .tab-btn { padding: 6px 12px; font-size: 11px; }
+      .header-right { gap: 10px; }
       .last-updated { display: none; }
-      .chart-canvas-wrap { height: 140px; }
+      .chart-canvas-wrap { height: 150px; }
       .analytics-minmax-grid { grid-template-columns: 1fr 1fr; }
       .compare-row { flex-direction: column; gap: 8px; }
-      .cards-grid { grid-template-columns: 1fr; }
-
-      /* Mobile: hide text in wifi btn */
-      .wifi-btn-label { display: none; }
-
-      /* Mobile: show bottom sheet, hide desktop dropdown */
-      .wifi-dropdown { display: none !important; }
-      .wifi-sheet-overlay { display: block; }
     }
 
-    @media (min-width: 481px) and (max-width: 1024px) {
-      .cards-grid { grid-template-columns: 1fr 1fr; }
-      .wifi-sheet-overlay { display: none; }
-    }
-
-    @media (min-width: 1025px) {
+    @media (min-width: 1024px) {
       .cards-grid  { grid-template-columns: 1fr 1fr; }
       .charts-grid { grid-template-columns: 1fr 1fr; }
-      .wifi-sheet-overlay { display: none; }
     }
 
-    @media (max-width: 360px) {
-      .brand-text p { display: none; }
-      .buzzer-btn span.btn-label { display: none; }
+    /* Loading pulse for analytics */
+    .data-loading {
+      opacity: 0.5;
+      animation: dataPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes dataPulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.8; }
     }
   </style>
 </head>
@@ -1862,22 +1388,10 @@
 
   <div class="scanlines" aria-hidden="true"></div>
 
-  <!-- Loading Overlay -->
   <div id="loading-overlay">
-    <div class="loader-ring"></div>
+    <div class="loader-spinner"></div>
     <div class="loader-title">Room Monitor</div>
     <div class="loader-sub">Connecting to sensors_</div>
-  </div>
-
-  <!-- Mobile WiFi Bottom Sheet -->
-  <div class="wifi-sheet-overlay" id="wifi-sheet-overlay">
-    <div class="wifi-sheet" id="wifi-sheet">
-      <div class="wifi-sheet-handle"></div>
-      <div class="wifi-sheet-title">📡 WiFi Networks</div>
-      <div class="wifi-sheet-body" id="wifi-sheet-body">
-        <!-- populated by JS -->
-      </div>
-    </div>
   </div>
 
   <div class="wrapper">
@@ -1892,59 +1406,33 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="buzzer-btn" id="buzzer-btn">🔊 <span class="btn-label">Hold to Buzz</span></button>
+        <button class="buzzer-btn" id="buzzer-btn">🔊 Hold to Buzz</button>
         <span class="last-updated" id="last-updated">—</span>
-        <div class="live-badge">
+        <div class="live-badge" id="live-badge">
           <span class="live-dot"></span>
           Live
-        </div>
-        <!-- WIFI TOGGLE -->
-        <div class="wifi-btn-wrap">
-          <button class="wifi-toggle-btn" id="wifi-toggle-btn" title="Manage WiFi">
-            <svg class="wifi-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-              <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-              <circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/>
-            </svg>
-            <span class="wifi-btn-label">WiFi</span>
-          </button>
-
-          <!-- Desktop Dropdown -->
-          <div class="wifi-dropdown" id="wifi-dropdown">
-            <div class="wifi-dropdown-header">
-              📡 Networks
-              <span class="wifi-refresh-indicator"></span>
-            </div>
-            <div class="wifi-dropdown-body" id="wifi-list-container">
-              <div style="padding:24px; text-align:center;">
-                <div style="width:24px;height:24px;margin:0 auto 12px;border:2px solid rgba(255,255,255,0.06);border-top-color:var(--accent-blue);border-radius:50%;animation:spin 0.9s linear infinite;"></div>
-                <div style="font-size:11px; font-family:'DM Mono', monospace; color:var(--text-muted); letter-spacing:0.08em;">Scanning…</div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </header>
 
-    <!-- Error Banner -->
+    <!-- ERROR BANNER -->
     <div id="error-banner">
       <span>⚠</span>
       <span id="error-msg">Unable to fetch sensor data. Retrying…</span>
     </div>
 
     <!-- ══ TAB NAVIGATION ══ -->
-    <nav class="tab-nav" role="tablist">
-      <button class="tab-btn active" data-tab="live" role="tab">📡 Live</button>
-      <button class="tab-btn" data-tab="analytics" role="tab">📊 Analytics</button>
-      <button class="tab-btn" data-tab="calendar" role="tab">📅 Calendar</button>
-      <button class="tab-btn" data-tab="environment" role="tab">🌍 Environment</button>
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="live">📡 Live</button>
+      <button class="tab-btn" data-tab="analytics">📊 Analytics</button>
+      <button class="tab-btn" data-tab="calendar">📅 Calendar</button>
+      <button class="tab-btn" data-tab="environment">🌍 Environment</button>
     </nav>
 
     <!-- ══════════════════════════════════════
          TAB: LIVE
     ══════════════════════════════════════ -->
-    <div id="tab-live" class="tab-panel active" role="tabpanel">
+    <div id="tab-live" class="tab-panel active">
 
       <section class="hero-section">
         <p class="section-label fade-in">Current Readings</p>
@@ -2079,7 +1567,7 @@
     <!-- ══════════════════════════════════════
          TAB: ANALYTICS
     ══════════════════════════════════════ -->
-    <div id="tab-analytics" class="tab-panel" role="tabpanel">
+    <div id="tab-analytics" class="tab-panel">
       <section class="analytics-section">
 
         <div class="analytics-header">
@@ -2146,11 +1634,11 @@
           </div>
         </div>
 
-        <!-- Analytics Charts -->
+        <!-- Analytics Chart -->
         <div class="analytics-chart-wrap">
           <div class="chart-header">
             <div class="chart-title-wrap">
-              <span class="chart-dot" style="background:var(--temp-base);box-shadow:0 0 10px var(--temp-base)"></span>
+              <span class="chart-dot" style="background:var(--temp-base); box-shadow: 0 0 8px var(--temp-base)"></span>
               <span class="chart-title">Temperature Over Time</span>
             </div>
             <span class="chart-badge" style="background:rgba(255,107,53,0.12);color:var(--temp-mid);border:1px solid rgba(255,107,53,0.2)">°C</span>
@@ -2163,7 +1651,7 @@
         <div class="analytics-chart-wrap" style="margin-top:16px">
           <div class="chart-header">
             <div class="chart-title-wrap">
-              <span class="chart-dot" style="background:var(--hum-base);box-shadow:0 0 10px var(--hum-base)"></span>
+              <span class="chart-dot" style="background:var(--hum-base); box-shadow: 0 0 8px var(--hum-base)"></span>
               <span class="chart-title">Humidity Over Time</span>
             </div>
             <span class="chart-badge" style="background:rgba(0,198,255,0.10);color:var(--hum-base);border:1px solid rgba(0,198,255,0.18)">%</span>
@@ -2174,7 +1662,7 @@
         </div>
 
         <div id="analytics-no-data" class="analytics-no-data" style="display:none">
-          <span style="font-size:32px;display:block;margin-bottom:12px">📭</span>
+          <span class="nd-icon">📭</span>
           No historical data found for this period.<br>Make sure NodeMCU is logging to <code style="color:var(--temp-mid)">logs/</code> in Firebase.
         </div>
 
@@ -2185,7 +1673,7 @@
     <!-- ══════════════════════════════════════
          TAB: CALENDAR
     ══════════════════════════════════════ -->
-    <div id="tab-calendar" class="tab-panel" role="tabpanel">
+    <div id="tab-calendar" class="tab-panel">
       <section class="calendar-section">
         <div class="calendar-controls">
           <button class="cal-nav-btn" id="cal-prev">‹</button>
@@ -2208,7 +1696,9 @@
             <div class="cal-day-name">Fri</div>
             <div class="cal-day-name">Sat</div>
           </div>
-          <div class="cal-grid" id="cal-grid"></div>
+          <div class="cal-grid" id="cal-grid">
+            <!-- cells injected by JS -->
+          </div>
         </div>
 
         <div class="cal-detail" id="cal-detail">
@@ -2216,7 +1706,9 @@
             <div class="cal-detail-date" id="cal-detail-date">—</div>
             <button class="cal-close-btn" id="cal-close-btn">✕ Close</button>
           </div>
-          <div class="cal-detail-stats" id="cal-detail-stats"></div>
+          <div class="cal-detail-stats" id="cal-detail-stats">
+            <!-- stats injected by JS -->
+          </div>
         </div>
       </section>
     </div><!-- /tab-calendar -->
@@ -2225,9 +1717,10 @@
     <!-- ══════════════════════════════════════
          TAB: ENVIRONMENT
     ══════════════════════════════════════ -->
-    <div id="tab-environment" class="tab-panel" role="tabpanel">
+    <div id="tab-environment" class="tab-panel">
       <section class="env-section">
 
+        <!-- Location permission banner -->
         <div class="env-permission-banner" id="env-permission-banner">
           <span class="env-perm-icon">🌍</span>
           <div class="env-perm-title">Enable Environment Monitoring</div>
@@ -2236,17 +1729,22 @@
           <div class="env-api-note">Uses secure backend connection for weather data</div>
         </div>
 
+        <!-- Loading state -->
         <div class="env-loading" id="env-loading" style="display:none">
-          <div style="width:36px;height:36px;margin:0 auto 16px;border:2px solid rgba(255,255,255,0.06);border-top-color:var(--env-base);border-radius:50%;animation:spin 0.9s linear infinite;"></div>
+          <div class="loader-spinner" style="margin:0 auto 16px"></div>
           Fetching weather data…
         </div>
 
+        <!-- Data panel -->
         <div class="env-data-panel" id="env-data-panel">
-          <div class="env-location-info">
+
+          <div class="env-location-info" id="env-location-info">
             <span>📍</span>
             <span id="env-location-text">—</span>
           </div>
+
           <div class="env-cards-grid">
+
             <!-- Weather card -->
             <div class="env-card env-card-weather">
               <div class="env-card-label">Outside Temperature</div>
@@ -2264,10 +1762,13 @@
               <div class="env-card-label">Air Quality Index</div>
               <div class="env-main-value" style="color:var(--aqi-moderate)" id="env-aqi-val">--</div>
               <div class="aqi-bar-wrap">
-                <div class="aqi-bar" id="env-aqi-bar" style="width:0%;background:var(--aqi-moderate)"></div>
+                <div class="aqi-bar" id="env-aqi-bar" style="width:0%; background:var(--aqi-moderate)"></div>
               </div>
               <div class="aqi-category" id="env-aqi-cat">—</div>
+              
+              <!-- Smart Health Message injected here -->
               <div class="env-aqi-advice" id="env-aqi-advice">—</div>
+              
               <div class="env-details-row" style="margin-top:10px">
                 <div class="env-detail-item">PM2.5<span id="env-pm25">--</span></div>
                 <div class="env-detail-item">PM10<span id="env-pm10">--</span></div>
@@ -2288,8 +1789,11 @@
                   <div class="compare-val-number" id="cmp-outside" style="color:var(--env-base)">--°C</div>
                 </div>
               </div>
-              <div class="compare-insight" id="cmp-insight">Fetching comparison data…</div>
+              <div class="compare-insight" id="cmp-insight">
+                Fetching comparison data…
+              </div>
             </div>
+
           </div>
         </div>
 
@@ -2298,32 +1802,13 @@
 
     <!-- FOOTER -->
     <footer>
-      <span>Room Monitor — Smart IoT Platform</span>
+      <span>Room Monitor &mdash; Smart IoT Platform</span>
       <div class="footer-right">
-        <div class="footer-dot"></div>
         <span>Auto-refresh 2s</span>
       </div>
     </footer>
 
   </div><!-- /wrapper -->
-
-  <!-- ══ WIFI MODAL ══ -->
-  <div class="wifi-modal-overlay" id="wifi-modal-overlay">
-    <div class="wifi-modal">
-      <div class="wifi-modal-icon">📶</div>
-      <div class="wifi-modal-title">Connect to Network</div>
-      <div class="wifi-modal-ssid" id="wifi-modal-ssid">SSID</div>
-      <div class="wifi-modal-status" id="wifi-modal-status"></div>
-      <div class="wifi-pwd-wrap" id="wifi-pwd-wrap">
-        <input type="password" class="wifi-modal-input" id="wifi-modal-input" placeholder="Enter password…" autocomplete="new-password" />
-        <button class="wifi-pwd-toggle" id="wifi-pwd-toggle" type="button" title="Toggle visibility">👁</button>
-      </div>
-      <div class="wifi-modal-buttons" id="wifi-modal-buttons">
-        <button class="wifi-modal-btn cancel" id="wifi-modal-cancel">Cancel</button>
-        <button class="wifi-modal-btn connect" id="wifi-modal-connect">Connect</button>
-      </div>
-    </div>
-  </div>
 
 
   <!-- ══════════════════════════════════════════
@@ -2346,10 +1831,12 @@
     let lastTemp = null, lastHum = null;
     let currentOutsideTemp = null;
 
+    // Charts data for insights
     const tempReadings  = [];
     const humReadings   = [];
     const timeReadings  = [];
 
+    // Calendar state
     let calYear  = new Date().getFullYear();
     let calMonth = new Date().getMonth();
     let logsCache = null;
@@ -2383,13 +1870,10 @@
     const app = initializeApp(firebaseConfig);
     const db  = getDatabase(app);
 
-    const tempRef         = ref(db, 'room/temp');
-    const humRef          = ref(db, 'room/hum');
-    const buzRef          = ref(db, 'room/buzzer');
-    const logsRef         = ref(db, 'logs');
-    const wifiListRef     = ref(db, 'wifi_list');
-    const wifiStatusRef   = ref(db, 'wifi_status');
-    const wifiSelectedRef = ref(db, 'wifi_selected');
+    const tempRef = ref(db, 'room/temp');
+    const humRef  = ref(db, 'room/hum');
+    const buzRef  = ref(db, 'room/buzzer');
+    const logsRef = ref(db, 'logs');
 
     /* ─────────────────────────────────────────
        UTILITIES
@@ -2400,18 +1884,18 @@
     }
 
     function formatTime(seconds) {
-      if (isNaN(seconds)) return seconds;
+      if (isNaN(seconds)) return seconds; 
       const numSecs = Number(seconds);
       const hrs = Math.floor(numSecs / 3600);
       const mins = Math.floor((numSecs % 3600) / 60);
-      let period = "AM", displayHour = hrs;
-      if (hrs >= 12) { period = "PM"; if (hrs > 12) displayHour = hrs - 12; }
-      if (displayHour === 0) displayHour = 12;
-      return `${displayHour}:${mins.toString().padStart(2, '0')} ${period}`;
+      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
     }
 
     function checkFirstLoad() {
-      if (firstLoad) { firstLoad = false; elLoading.classList.add('hidden'); }
+      if (firstLoad) {
+        firstLoad = false;
+        elLoading.classList.add('hidden');
+      }
     }
 
     function updateTimestamp() {
@@ -2423,7 +1907,7 @@
 
     function setValueAnimated(el, newHTML) {
       el.classList.add('updating');
-      setTimeout(() => { el.innerHTML = newHTML; el.classList.remove('updating'); }, 240);
+      setTimeout(() => { el.innerHTML = newHTML; el.classList.remove('updating'); }, 220);
     }
 
     function showError(msg) { elErrBanner.classList.add('visible'); elErrMsg.textContent = msg; }
@@ -2445,6 +1929,7 @@
       return '🌊 Very Humid';
     }
 
+    /* temp → heatmap color: cool blue → teal → amber → red */
     function tempToColor(t) {
       if (t === null) return 'rgba(255,255,255,0.04)';
       if (t < 22) return `rgba(59,130,246,${0.3 + Math.min(0.5, (22-t)/10)})`;
@@ -2454,66 +1939,38 @@
     }
 
     /* ─────────────────────────────────────────
-       CHART GLOW PLUGIN
-    ───────────────────────────────────────── */
-    const glowPlugin = {
-      id: 'glowPlugin',
-      beforeDatasetsDraw(chart) {
-        const ctx = chart.ctx;
-        ctx.save();
-        ctx.shadowColor = chart.data.datasets[0].borderColor;
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 4;
-      },
-      afterDatasetsDraw(chart) { chart.ctx.restore(); }
-    };
-
-    /* ─────────────────────────────────────────
        CHART FACTORY
     ───────────────────────────────────────── */
-    function buildChart(canvasId, colorBase) {
+    function buildChart(canvasId, color) {
       const ctx = document.getElementById(canvasId).getContext('2d');
-      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-      gradient.addColorStop(0, colorBase.replace(')', ', 0.55)').replace('rgb', 'rgba'));
-      gradient.addColorStop(1, colorBase.replace(')', ', 0.0)').replace('rgb', 'rgba'));
+      const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+      gradient.addColorStop(0,   color.replace(')', ', 0.28)').replace('rgb', 'rgba'));
+      gradient.addColorStop(0.7, color.replace(')', ', 0.04)').replace('rgb', 'rgba'));
+      gradient.addColorStop(1,   'rgba(0,0,0,0)');
 
       return new Chart(ctx, {
         type: 'line',
-        plugins: [glowPlugin],
-        data: {
-          labels: [],
-          datasets: [{
-            data: [], borderColor: colorBase, borderWidth: 2,
-            pointRadius: 0, pointHoverRadius: 5,
-            pointBackgroundColor: colorBase,
-            pointHoverBackgroundColor: '#fff', pointHoverBorderColor: colorBase, pointHoverBorderWidth: 2,
-            fill: true, backgroundColor: gradient, tension: 0.48
-          }]
-        },
+        data: { labels: [], datasets: [{ data: [], borderColor: color, borderWidth: 2,
+          pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: color,
+          pointHoverBorderColor: '#0d1420', pointHoverBorderWidth: 2,
+          fill: true, backgroundColor: gradient, tension: 0.42 }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          animation: { duration: 900, easing: 'easeOutQuart' },
+          animation: { duration: 600, easing: 'easeInOutCubic' },
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: "rgba(8,14,28,0.92)",
-              borderColor: "rgba(255,255,255,0.08)",
-              borderWidth: 1,
-              titleFont: { family: 'Outfit', size: 13, weight: '600' },
-              bodyFont: { family: 'DM Mono', size: 12 },
-              padding: 14, titleColor: "#ffffff",
-              bodyColor: "rgba(255,255,255,0.75)",
-              displayColors: false, cornerRadius: 10,
-              caretSize: 6, caretPadding: 6
+              backgroundColor: 'rgba(13,20,36,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+              titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Mono', size: 13 }, padding: 10,
+              callbacks: { label: ctx => `  ${ctx.parsed.y.toFixed(1)}` }
             }
           },
           scales: {
             x: { display: false },
             y: {
-              grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
-              ticks: { font: { family: 'DM Mono', size: 10 }, color: "rgba(255,255,255,0.35)", maxTicksLimit: 5, padding: 10 },
+              grid: { color: 'rgba(255,255,255,0.045)', drawBorder: false },
+              ticks: { font: { family: 'DM Mono', size: 10 }, color: '#4a5568', maxTicksLimit: 5, padding: 8 },
               border: { display: false }
             }
           }
@@ -2521,59 +1978,38 @@
       });
     }
 
-    function buildAnalyticsChart(canvasId, colorBase, showXAxis = true) {
+    function buildAnalyticsChart(canvasId, color, showXAxis = true) {
       const ctx = document.getElementById(canvasId).getContext('2d');
-      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-      gradient.addColorStop(0, colorBase.replace(')', ', 0.55)').replace('rgb', 'rgba'));
-      gradient.addColorStop(1, colorBase.replace(')', ', 0.0)').replace('rgb', 'rgba'));
+      const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+      gradient.addColorStop(0,   color.replace(')', ', 0.22)').replace('rgb', 'rgba'));
+      gradient.addColorStop(1,   'rgba(0,0,0,0)');
 
       return new Chart(ctx, {
         type: 'line',
-        plugins: [glowPlugin],
-        data: {
-          labels: [],
-          datasets: [{
-            data: [], borderColor: colorBase, borderWidth: 2,
-            pointRadius: 0, pointHoverRadius: 5,
-            pointBackgroundColor: colorBase,
-            pointHoverBackgroundColor: '#fff', pointHoverBorderColor: colorBase, pointHoverBorderWidth: 2,
-            fill: true, backgroundColor: gradient, tension: 0.48
-          }]
-        },
+        data: { labels: [], datasets: [{ data: [], borderColor: color, borderWidth: 2,
+          pointRadius: 2, pointBackgroundColor: color,
+          pointHoverRadius: 6, fill: true, backgroundColor: gradient, tension: 0.35 }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          animation: { duration: 900, easing: 'easeOutQuart' },
+          animation: { duration: 400 },
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: "rgba(8,14,28,0.92)",
-              borderColor: "rgba(255,255,255,0.08)", borderWidth: 1,
-              titleFont: { family: 'Outfit', size: 13, weight: '600' },
-              bodyFont: { family: 'DM Mono', size: 12 },
-              padding: 14, titleColor: "#ffffff",
-              bodyColor: "rgba(255,255,255,0.75)",
-              displayColors: false, cornerRadius: 10
+              backgroundColor: 'rgba(13,20,36,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+              titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Mono', size: 12 }, padding: 10
             }
           },
           scales: {
             x: {
               display: showXAxis,
-              grid: { display: false },
-              ticks: {
-                font: { family: 'DM Mono', size: 10 },
-                color: "rgba(255,255,255,0.35)",
-                maxTicksLimit: 6, maxRotation: 0
-              },
+              grid: { color: 'rgba(255,255,255,0.03)' },
+              ticks: { font: { family: 'DM Mono', size: 9 }, color: '#4a5568', maxTicksLimit: 8, maxRotation: 0 },
               border: { display: false }
             },
             y: {
-              grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
-              ticks: {
-                font: { family: 'DM Mono', size: 11 },
-                color: "rgba(255,255,255,0.35)",
-                maxTicksLimit: 5, padding: 10
-              },
+              grid: { color: 'rgba(255,255,255,0.045)', drawBorder: false },
+              ticks: { font: { family: 'DM Mono', size: 10 }, color: '#4a5568', maxTicksLimit: 5, padding: 8 },
               border: { display: false }
             }
           }
@@ -2584,8 +2020,8 @@
     /* ─────────────────────────────────────────
        INIT CHARTS
     ───────────────────────────────────────── */
-    chartTemp    = buildChart('chart-temp',           'rgb(255,107,53)');
-    chartHum     = buildChart('chart-hum',            'rgb(0,198,255)');
+    chartTemp    = buildChart('chart-temp', 'rgb(255,107,53)');
+    chartHum     = buildChart('chart-hum',  'rgb(0,198,255)');
     chartAnTemp  = buildAnalyticsChart('chart-analytics-temp', 'rgb(255,107,53)');
     chartAnHum   = buildAnalyticsChart('chart-analytics-hum',  'rgb(0,198,255)');
 
@@ -2603,302 +2039,35 @@
       set(buzRef, 0).catch(err => showError('Buzzer Error: ' + err.message));
     }
 
-    elBuzzerBtn.addEventListener('mousedown',  buzzerOn);
-    elBuzzerBtn.addEventListener('mouseup',    buzzerOff);
-    elBuzzerBtn.addEventListener('mouseleave', buzzerOff);
+    elBuzzerBtn.addEventListener('mousedown', buzzerOn);
+    elBuzzerBtn.addEventListener('mouseup',   buzzerOff);
+    elBuzzerBtn.addEventListener('mouseleave',buzzerOff);
     elBuzzerBtn.addEventListener('touchstart', buzzerOn,  {passive: false});
     elBuzzerBtn.addEventListener('touchend',   buzzerOff, {passive: false});
     elBuzzerBtn.addEventListener('touchcancel',buzzerOff, {passive: false});
 
     /* ─────────────────────────────────────────
-       WIFI MANAGEMENT
-    ───────────────────────────────────────── */
-    let currentWifi = "";
-    let lastFetchedWifiList = [];
-    let activeModalSsid = "";
-
-    const wifiToggleBtn    = document.getElementById('wifi-toggle-btn');
-    const wifiDropdown     = document.getElementById('wifi-dropdown');
-    const wifiListContainer= document.getElementById('wifi-list-container');
-    const wifiModalOverlay = document.getElementById('wifi-modal-overlay');
-    const wifiModalSsid    = document.getElementById('wifi-modal-ssid');
-    const wifiModalInput   = document.getElementById('wifi-modal-input');
-    const wifiModalCancel  = document.getElementById('wifi-modal-cancel');
-    const wifiModalConnect = document.getElementById('wifi-modal-connect');
-    const wifiModalStatus  = document.getElementById('wifi-modal-status');
-    const wifiPwdWrap      = document.getElementById('wifi-pwd-wrap');
-    const wifiPwdToggle    = document.getElementById('wifi-pwd-toggle');
-
-    /* Mobile bottom sheet */
-    const wifiSheetOverlay = document.getElementById('wifi-sheet-overlay');
-    const wifiSheet        = document.getElementById('wifi-sheet');
-    const wifiSheetBody    = document.getElementById('wifi-sheet-body');
-
-    const isMobile = () => window.innerWidth <= 480;
-
-    /* Password show/hide */
-    wifiPwdToggle.addEventListener('click', () => {
-      const isPassword = wifiModalInput.type === 'password';
-      wifiModalInput.type = isPassword ? 'text' : 'password';
-      wifiPwdToggle.textContent = isPassword ? '🙈' : '👁';
-    });
-
-    /* Toggle WiFi panel */
-    wifiToggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (isMobile()) {
-        openWifiSheet();
-      } else {
-        const isOpen = wifiDropdown.classList.contains('open');
-        if (!isOpen) {
-          wifiDropdown.classList.add('open');
-          wifiToggleBtn.classList.add('active');
-          fixDropdownPosition();
-          fetchWifiList();
-        } else {
-          closeWifiDropdown();
-        }
-      }
-    });
-
-    /* Smart viewport positioning for dropdown */
-    function fixDropdownPosition() {
-      const btnRect = wifiToggleBtn.getBoundingClientRect();
-      const dropW = 300;
-      const viewW = window.innerWidth;
-
-      wifiDropdown.style.right = '';
-      wifiDropdown.style.left  = '';
-
-      if (btnRect.right - dropW < 16) {
-        wifiDropdown.style.left  = '0';
-        wifiDropdown.style.right = 'auto';
-      } else {
-        wifiDropdown.style.right = '0';
-        wifiDropdown.style.left  = 'auto';
-      }
-    }
-
-    document.addEventListener('click', (e) => {
-      if (!wifiDropdown.contains(e.target) && !wifiToggleBtn.contains(e.target)) {
-        closeWifiDropdown();
-      }
-    });
-
-    function closeWifiDropdown() {
-      wifiDropdown.classList.remove('open');
-      wifiToggleBtn.classList.remove('active');
-    }
-
-    /* Mobile sheet */
-    function openWifiSheet() {
-      wifiSheetOverlay.style.display = 'block';
-      requestAnimationFrame(() => {
-        wifiSheetOverlay.classList.add('open');
-        wifiSheet.classList.add('open');
-      });
-      wifiSheetBody.innerHTML = wifiListContainer.innerHTML;
-      wifiToggleBtn.classList.add('active');
-      fetchWifiList(true);
-    }
-
-    function closeWifiSheet() {
-      wifiSheetOverlay.classList.remove('open');
-      wifiSheet.classList.remove('open');
-      wifiToggleBtn.classList.remove('active');
-      setTimeout(() => { wifiSheetOverlay.style.display = 'none'; }, 400);
-    }
-
-    wifiSheetOverlay.addEventListener('click', (e) => {
-      if (e.target === wifiSheetOverlay) closeWifiSheet();
-    });
-
-    /* Monitor current WiFi */
-    onValue(wifiStatusRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const val = snapshot.val();
-        currentWifi = typeof val === 'object' ? val.ssid || val.current || "" : val;
-      } else { currentWifi = ""; }
-      if ((wifiDropdown.classList.contains('open') || wifiSheetOverlay.classList.contains('open'))
-          && lastFetchedWifiList.length > 0) {
-        renderWifiList(lastFetchedWifiList);
-      }
-    });
-
-    /* Fetch WiFi list */
-    async function fetchWifiList(forSheet = false) {
-      try {
-        const snap = await get(wifiListRef);
-        if (snap.exists()) {
-          const val = snap.val();
-          let parsedList = [];
-
-          if (Array.isArray(val)) {
-            parsedList = val.filter(v => v).map(v => typeof v === 'object' ? v : {ssid: v, rssi: -100});
-          } else if (typeof val === 'object') {
-            Object.entries(val).forEach(([k, v]) => {
-              if (typeof v === 'number') parsedList.push({ssid: k, rssi: v});
-              else if (typeof v === 'object' && v.ssid) parsedList.push(v);
-              else parsedList.push({ssid: k, rssi: -100});
-            });
-          }
-
-          parsedList.sort((a,b) => (b.rssi || -100) - (a.rssi || -100));
-          lastFetchedWifiList = parsedList;
-          renderWifiList(parsedList, forSheet);
-        } else {
-          const emptyMsg = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:11px;font-family:\'DM Mono\',monospace;letter-spacing:0.08em;">No networks found</div>';
-          wifiListContainer.innerHTML = emptyMsg;
-          if (forSheet) wifiSheetBody.innerHTML = emptyMsg;
-        }
-      } catch (err) { console.error("WiFi fetch error:", err); }
-    }
-
-    setInterval(() => {
-      if (wifiDropdown.classList.contains('open')) fetchWifiList(false);
-      if (wifiSheetOverlay.classList.contains('open')) fetchWifiList(true);
-    }, 10000);
-
-    /* Signal bars helper */
-    function getSignalClass(rssi) {
-      const r = parseInt(rssi) || -100;
-      if (r >= -60) return 'sig-4';
-      if (r >= -70) return 'sig-3';
-      if (r >= -80) return 'sig-2';
-      return 'sig-1';
-    }
-
-    /* Render wifi list into a target container */
-    function renderWifiList(list, forSheet = false) {
-      if (!list || list.length === 0) return;
-
-      let html = '';
-      list.forEach(net => {
-        const ssid = net.ssid;
-        const isCurrent = (ssid === currentWifi);
-        const sigClass = getSignalClass(net.rssi);
-        const isOpen = net.auth === false || net.open === true;
-        const tagHtml = isOpen
-          ? '<span class="wifi-tag wifi-tag-open">OPEN</span>'
-          : '<span class="wifi-tag wifi-tag-secure">🔒</span>';
-
-        html += `
-          <div class="wifi-item${isCurrent ? ' wifi-item-connected' : ''}" data-ssid="${ssid}">
-            <div class="wifi-info">
-              <div class="wifi-ssid">${ssid}</div>
-              <div class="wifi-meta">
-                <span class="wifi-status-text${isCurrent ? ' connected' : ''}">${isCurrent ? '✔ Connected' : 'Tap to connect'}</span>
-                ${tagHtml}
-              </div>
-            </div>
-            <div class="wifi-signal-bars ${sigClass}">
-              <span></span><span></span><span></span><span></span>
-            </div>
-          </div>
-        `;
-      });
-
-      wifiListContainer.innerHTML = html;
-      if (forSheet) wifiSheetBody.innerHTML = html;
-
-      /* Attach click handlers */
-      const containers = [wifiListContainer];
-      if (forSheet) containers.push(wifiSheetBody);
-
-      containers.forEach(container => {
-        container.querySelectorAll('.wifi-item').forEach(item => {
-          item.addEventListener('click', (e) => {
-            const ssid = e.currentTarget.getAttribute('data-ssid');
-            openWifiModal(ssid);
-            closeWifiDropdown();
-            closeWifiSheet();
-          });
-        });
-      });
-    }
-
-    /* Modal states */
-    function setModalState(state) {
-      wifiModalStatus.className = 'wifi-modal-status';
-      wifiPwdWrap.style.display = 'block';
-      wifiModalConnect.disabled = false;
-      wifiModalCancel.disabled  = false;
-
-      if (state === 'connecting') {
-        wifiModalStatus.classList.add('connecting');
-        wifiModalStatus.textContent = '⟳ Connecting…';
-        wifiPwdWrap.style.display = 'none';
-        wifiModalConnect.disabled = true;
-        wifiModalCancel.disabled  = true;
-      } else if (state === 'success') {
-        wifiModalStatus.classList.add('success');
-        wifiModalStatus.textContent = '✔ Connected successfully';
-        wifiPwdWrap.style.display = 'none';
-        wifiModalConnect.disabled = true;
-      } else if (state === 'error') {
-        wifiModalStatus.classList.add('error');
-        wifiModalStatus.textContent = '✕ Failed — check password';
-      }
-    }
-
-    function openWifiModal(ssid) {
-      activeModalSsid = ssid;
-      wifiModalSsid.textContent = ssid;
-      wifiModalInput.value = '';
-      wifiModalInput.type = 'password';
-      wifiPwdToggle.textContent = '👁';
-      wifiModalStatus.className = 'wifi-modal-status';
-      wifiPwdWrap.style.display = 'block';
-      wifiModalConnect.disabled = false;
-      wifiModalCancel.disabled  = false;
-      wifiModalOverlay.classList.add('open');
-      setTimeout(() => wifiModalInput.focus(), 200);
-    }
-
-    wifiModalCancel.addEventListener('click', () => {
-      wifiModalOverlay.classList.remove('open');
-    });
-
-    wifiModalConnect.addEventListener('click', () => {
-      setModalState('connecting');
-      set(wifiSelectedRef, {
-        ssid: activeModalSsid,
-        password: wifiModalInput.value,
-        timestamp: Date.now()
-      })
-      .then(() => {
-        setModalState('success');
-        setTimeout(() => wifiModalOverlay.classList.remove('open'), 1800);
-      })
-      .catch(err => {
-        setModalState('error');
-        showError('WiFi Update Error: ' + err.message);
-      });
-    });
-
-    /* Enter key in password input */
-    wifiModalInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') wifiModalConnect.click();
-    });
-
-    /* ─────────────────────────────────────────
-       SMART INSIGHTS
+       SMART INSIGHTS & INITIALIZATION
     ───────────────────────────────────────── */
     function updateInsights() {
       if (tempReadings.length < 3) return;
 
-      const maxT = Math.max(...tempReadings);
-      const maxI = tempReadings.indexOf(maxT);
+      const n   = tempReadings.length;
+      const maxT = Math.max(...tempReadings), maxI = tempReadings.indexOf(maxT);
+      const minT = Math.min(...tempReadings);
 
+      // Peak temp
       document.getElementById('insight-peak-temp').textContent =
         `Room peaked at ${maxT.toFixed(1)}°C at ${timeReadings[maxI]}.`;
 
+      // Humidity trend
       const humSlice = humReadings.slice(-5);
-      const humDelta = humSlice[humSlice.length-1] - humSlice[0];
-      const humIcon  = humDelta > 1 ? '↑ rising' : humDelta < -1 ? '↓ falling' : '→ stable';
+      const humDelta  = humSlice[humSlice.length-1] - humSlice[0];
+      const humIcon   = humDelta > 1 ? '↑ rising' : humDelta < -1 ? '↓ falling' : '→ stable';
       document.getElementById('insight-hum-trend').textContent =
         `Humidity is ${humIcon} (${humDelta > 0 ? '+' : ''}${humDelta.toFixed(1)}% last 5 readings).`;
 
+      // Alert count
       const crossings = tempReadings.filter((t, i) =>
         i > 0 && tempReadings[i-1] < 35 && t >= 35
       ).length;
@@ -2908,6 +2077,7 @@
           ? 'Temperature stayed below 35°C threshold.'
           : `Temperature crossed 35°C threshold ${crossings} time${crossings > 1 ? 's' : ''}.`;
 
+      // Trend direction (last 6)
       const last6 = tempReadings.slice(-6);
       const trend  = last6[last6.length-1] - last6[0];
       document.getElementById('insight-trend').textContent =
@@ -2915,6 +2085,7 @@
         trend < -1  ? `Temperature is falling (${trend.toFixed(1)}°C over last 6 readings).` :
                       `Temperature is holding steady.`;
 
+      // Update icons
       const cards = document.querySelectorAll('.insight-card');
       cards[0].querySelector('.insight-icon').textContent = maxT > 35 ? '🌋' : maxT > 28 ? '🔥' : '🌤';
     }
@@ -2924,16 +2095,20 @@
       try {
         const snapshot = await get(ref(db, `logs/${today}`));
         if (!snapshot.exists()) return;
-
+        
         const data = snapshot.val();
         const sortedTimes = Object.keys(data).sort((a,b) => Number(a) - Number(b));
-
+        
         sortedTimes.forEach(time => {
           const entry = data[time];
           if (entry && entry.temp != null && entry.hum != null) {
             const t = parseFloat(entry.temp);
             const h = parseFloat(entry.hum);
-            tempReadings.push(t); humReadings.push(h); timeReadings.push(formatTime(time));
+            
+            tempReadings.push(t);
+            humReadings.push(h);
+            timeReadings.push(formatTime(time));
+            
             if (t > sessionTMax) sessionTMax = t;
             if (t < sessionTMin) sessionTMin = t;
             if (h > sessionHMax) sessionHMax = h;
@@ -2941,43 +2116,52 @@
             dataCount++;
           }
         });
-
+        
+        // Update Stats
         if (sessionTMax !== -Infinity) elStatTMax.textContent = sessionTMax.toFixed(1) + '°C';
-        if (sessionTMin !== Infinity)  elStatTMin.textContent = sessionTMin.toFixed(1) + '°C';
+        if (sessionTMin !== Infinity) elStatTMin.textContent = sessionTMin.toFixed(1) + '°C';
         if (sessionHMax !== -Infinity) elStatHMax.textContent = sessionHMax.toFixed(1) + '%';
-        if (sessionHMin !== Infinity)  elStatHMin.textContent = sessionHMin.toFixed(1) + '%';
+        if (sessionHMin !== Infinity) elStatHMin.textContent = sessionHMin.toFixed(1) + '%';
         elStatCount.textContent = dataCount;
-
-        chartTemp.data.labels   = timeReadings.slice(-30);
+        
+        // Update Charts (last 30)
+        chartTemp.data.labels = timeReadings.slice(-30);
         chartTemp.data.datasets[0].data = tempReadings.slice(-30);
         chartTemp.update();
-
-        chartHum.data.labels    = timeReadings.slice(-30);
+        
+        chartHum.data.labels = timeReadings.slice(-30);
         chartHum.data.datasets[0].data = humReadings.slice(-30);
         chartHum.update();
-
+        
         updateInsights();
-      } catch(e) { console.warn("Could not load historical data:", e); }
+      } catch (e) {
+        console.warn("Could not load historical data:", e);
+      }
     }
 
     /* ─────────────────────────────────────────
-       FIREBASE LIVE LISTENERS
+       FIREBASE LISTENERS (LIVE TAB)
     ───────────────────────────────────────── */
+    // Initialize data then attach listeners to ensure sequential load
     loadTodayData().then(() => {
       onValue(tempRef, (snapshot) => {
         const val = snapshot.val();
         if (val !== null) {
           const temp = parseFloat(val);
           const tDisp = isNaN(temp) ? '--' : temp.toFixed(1);
+
           setValueAnimated(elTempVal, `${tDisp}<span class="value-unit">°C</span>`);
           elTempStatus.textContent = isNaN(temp) ? 'No data' : tempLabel(temp);
 
           if (!isNaN(temp)) {
             lastTemp = temp;
-            const timeStr = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
             tempReadings.push(temp); timeReadings.push(timeStr);
+
             if (temp > sessionTMax) { sessionTMax = temp; elStatTMax.textContent = temp.toFixed(1) + '°C'; }
             if (temp < sessionTMin) { sessionTMin = temp; elStatTMin.textContent = temp.toFixed(1) + '°C'; }
+
             chartTemp.data.labels.push(timeStr);
             chartTemp.data.datasets[0].data.push(temp);
             if (chartTemp.data.labels.length > 30) {
@@ -2985,9 +2169,11 @@
               chartTemp.data.datasets[0].data.shift();
             }
             chartTemp.update();
+
             updateInsights();
             updateCompareCard();
           }
+
           dataCount++; elStatCount.textContent = dataCount; hideError();
         }
         checkFirstLoad();
@@ -2998,16 +2184,18 @@
         if (val !== null) {
           const hum = parseFloat(val);
           const hDisp = isNaN(hum) ? '--' : hum.toFixed(1);
+
           setValueAnimated(elHumVal, `${hDisp}<span class="value-unit">%</span>`);
           elHumStatus.textContent = isNaN(hum) ? 'No data' : humLabel(hum);
 
           if (!isNaN(hum)) {
             lastHum = hum;
             humReadings.push(hum);
+
             if (hum > sessionHMax) { sessionHMax = hum; elStatHMax.textContent = hum.toFixed(1) + '%'; }
             if (hum < sessionHMin) { sessionHMin = hum; elStatHMin.textContent = hum.toFixed(1) + '%'; }
-            const timeStr = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            chartHum.data.labels.push(timeStr);
+
+            chartHum.data.labels.push(new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
             chartHum.data.datasets[0].data.push(hum);
             if (chartHum.data.labels.length > 30) {
               chartHum.data.labels.shift();
@@ -3015,6 +2203,7 @@
             }
             chartHum.update();
           }
+
           dataCount++; elStatCount.textContent = dataCount; hideError();
         }
         checkFirstLoad();
@@ -3031,9 +2220,10 @@
       btn.addEventListener('click', () => {
         const target = btn.dataset.tab;
         tabBtns.forEach(b => b.classList.remove('active'));
-        tabPanels.forEach(p => p.classList.remove('active'));
+        tabPanels.forEach(p => { p.classList.remove('active'); });
         btn.classList.add('active');
         document.getElementById('tab-' + target).classList.add('active');
+
         if (target === 'analytics') loadAnalytics('today');
         if (target === 'calendar')  renderCalendar();
       });
@@ -3052,164 +2242,202 @@
     });
 
     async function loadAnalytics(period) {
+      // Show loading state
       document.getElementById('an-avg-temp').textContent = '…';
       document.getElementById('an-avg-hum').textContent  = '…';
       document.getElementById('an-alerts').textContent   = '…';
       document.getElementById('an-points').textContent   = '…';
 
-      const now = new Date();
-      let dates = [];
+      const noData = document.getElementById('analytics-no-data');
+      noData.style.display = 'none';
 
-      if (period === 'today') {
-        dates = [todayStr()];
-        document.getElementById('analytics-date-label').textContent =
-          now.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long'});
-      } else if (period === 'week') {
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date(now); d.setDate(d.getDate() - i);
-          dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+      const today = new Date();
+      const dateLabel = document.getElementById('analytics-date-label');
+
+      let tempData = [], humData = [], labelData = [], alertEvents = 0;
+
+      try {
+        const snapshot = await get(logsRef);
+        const logs = snapshot.val();
+
+        if (!logs) { showNoAnalyticsData(dateLabel, period); return; }
+
+        // Collect relevant dates
+        const dates = [];
+        if (period === 'today') {
+          dates.push(todayStr());
+          dateLabel.textContent = new Date().toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+        } else if (period === 'week') {
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+          }
+          dateLabel.textContent = 'Last 7 Days';
+        } else {
+          for (let i = 29; i >= 0; i--) {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+          }
+          dateLabel.textContent = 'Last 30 Days';
         }
-        document.getElementById('analytics-date-label').textContent = 'Last 7 Days';
-      } else {
-        for (let i = 29; i >= 0; i--) {
-          const d = new Date(now); d.setDate(d.getDate() - i);
-          dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
-        }
-        document.getElementById('analytics-date-label').textContent = 'Last 30 Days';
-      }
 
-      let allTemps = [], allHums = [], allLabels = [];
-      let alertEvt = 0;
+        dates.forEach(dateKey => {
+          const dayData = logs[dateKey];
+          if (!dayData) return;
 
-      for (const date of dates) {
-        try {
-          const snap = await get(ref(db, `logs/${date}`));
-          if (!snap.exists()) continue;
-          const data = snap.val();
-          const times = Object.keys(data).sort((a,b) => Number(a) - Number(b));
-          times.forEach(t => {
-            const e = data[t];
-            if (e && e.temp != null) {
-              const tv = parseFloat(e.temp), hv = parseFloat(e.hum);
-              allTemps.push(tv); allHums.push(hv);
-              if (period === 'today') allLabels.push(formatTime(t));
-              else allLabels.push(date.slice(5));
-              if (tv >= 35) alertEvt++;
+          if (period === 'today') {
+            // Hourly resolution for today
+            Object.keys(dayData).sort((a,b)=>Number(a)-Number(b)).forEach(timeKey => {
+              const entry = dayData[timeKey];
+              if (entry && entry.temp != null && entry.hum != null) {
+                tempData.push(parseFloat(entry.temp));
+                humData.push(parseFloat(entry.hum));
+                labelData.push(formatTime(timeKey));
+                if (parseFloat(entry.temp) >= 35) alertEvents++;
+              }
+            });
+          } else {
+            // Daily average for week/month
+            let dayTemps = [], dayHums = [];
+            Object.values(dayData).forEach(entry => {
+              if (entry && entry.temp != null) { dayTemps.push(parseFloat(entry.temp)); dayHums.push(parseFloat(entry.hum)); }
+            });
+            if (dayTemps.length > 0) {
+              const avgT = dayTemps.reduce((a,b)=>a+b,0)/dayTemps.length;
+              const avgH = dayHums.reduce((a,b)=>a+b,0)/dayHums.length;
+              tempData.push(avgT); humData.push(avgH);
+              labelData.push(dateKey.slice(5)); // MM-DD
+              alertEvents += dayTemps.filter(t => t >= 35).length;
             }
-          });
-        } catch(e) {}
+          }
+        });
+
+        if (tempData.length === 0) { showNoAnalyticsData(dateLabel, period); return; }
+
+        // Compute stats
+        const avgT = tempData.reduce((a,b)=>a+b,0)/tempData.length;
+        const avgH = humData.reduce((a,b)=>a+b,0)/humData.length;
+        const maxT = Math.max(...tempData), minT = Math.min(...tempData);
+        const maxH = Math.max(...humData),  minH = Math.min(...humData);
+
+        document.getElementById('an-avg-temp').textContent = avgT.toFixed(1);
+        document.getElementById('an-avg-hum').textContent  = avgH.toFixed(1);
+        document.getElementById('an-alerts').textContent   = alertEvents;
+        document.getElementById('an-points').textContent   = tempData.length;
+        document.getElementById('an-tmax').textContent     = maxT.toFixed(1) + '°C';
+        document.getElementById('an-tmin').textContent     = minT.toFixed(1) + '°C';
+        document.getElementById('an-hmax').textContent     = maxH.toFixed(1) + '%';
+        document.getElementById('an-hmin').textContent     = minH.toFixed(1) + '%';
+
+        // Update analytics charts
+        chartAnTemp.data.labels   = labelData;
+        chartAnTemp.data.datasets[0].data = tempData;
+        chartAnTemp.update();
+
+        chartAnHum.data.labels   = labelData;
+        chartAnHum.data.datasets[0].data = humData;
+        chartAnHum.update();
+
+      } catch(e) {
+        showNoAnalyticsData(dateLabel, period);
+        console.warn('Analytics load error:', e);
       }
+    }
 
-      const noDataEl = document.getElementById('analytics-no-data');
-
-      if (allTemps.length === 0) {
-        noDataEl.style.display = 'block';
-        document.getElementById('an-avg-temp').textContent = '--';
-        document.getElementById('an-avg-hum').textContent  = '--';
-        document.getElementById('an-alerts').textContent   = '--';
-        document.getElementById('an-points').textContent   = '--';
-        document.getElementById('an-tmax').textContent = '--°C';
-        document.getElementById('an-tmin').textContent = '--°C';
-        document.getElementById('an-hmax').textContent = '--%';
-        document.getElementById('an-hmin').textContent = '--%';
-        chartAnTemp.data.labels = []; chartAnTemp.data.datasets[0].data = []; chartAnTemp.update();
-        chartAnHum.data.labels  = []; chartAnHum.data.datasets[0].data  = []; chartAnHum.update();
-        return;
-      }
-
-      noDataEl.style.display = 'none';
-
-      const avg = arr => arr.reduce((a,b) => a+b, 0) / arr.length;
-      document.getElementById('an-avg-temp').textContent = avg(allTemps).toFixed(1);
-      document.getElementById('an-avg-hum').textContent  = avg(allHums).toFixed(1);
-      document.getElementById('an-alerts').textContent   = alertEvt;
-      document.getElementById('an-points').textContent   = allTemps.length;
-      document.getElementById('an-tmax').textContent = Math.max(...allTemps).toFixed(1) + '°C';
-      document.getElementById('an-tmin').textContent = Math.min(...allTemps).toFixed(1) + '°C';
-      document.getElementById('an-hmax').textContent = Math.max(...allHums).toFixed(1) + '%';
-      document.getElementById('an-hmin').textContent = Math.min(...allHums).toFixed(1) + '%';
-
-      /* Downsample if needed */
-      const MAX_POINTS = 60;
-      let labels = allLabels, temps = allTemps, hums = allHums;
-      if (allTemps.length > MAX_POINTS) {
-        const factor = Math.ceil(allTemps.length / MAX_POINTS);
-        labels = []; temps = []; hums = [];
-        for (let i = 0; i < allTemps.length; i += factor) {
-          labels.push(allLabels[i]);
-          temps.push(allTemps[i]);
-          hums.push(allHums[i]);
-        }
-      }
-
-      chartAnTemp.data.labels = labels; chartAnTemp.data.datasets[0].data = temps; chartAnTemp.update();
-      chartAnHum.data.labels  = labels; chartAnHum.data.datasets[0].data  = hums;  chartAnHum.update();
+    function showNoAnalyticsData(dateLabel, period) {
+      dateLabel.textContent = period === 'today' ? 'Today' : period === 'week' ? 'Last 7 Days' : 'Last 30 Days';
+      document.getElementById('an-avg-temp').textContent = '--';
+      document.getElementById('an-avg-hum').textContent  = '--';
+      document.getElementById('an-alerts').textContent   = '--';
+      document.getElementById('an-points').textContent   = '0';
+      document.getElementById('analytics-no-data').style.display = 'block';
     }
 
     /* ─────────────────────────────────────────
        CALENDAR TAB
     ───────────────────────────────────────── */
     async function renderCalendar() {
-      const grid = document.getElementById('cal-grid');
-      const label = document.getElementById('cal-month-label');
-      const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const grid   = document.getElementById('cal-grid');
+      const label  = document.getElementById('cal-month-label');
+      const detail = document.getElementById('cal-detail');
 
-      label.textContent = `${months[calMonth]} ${calYear}`;
+      const monthNames = ['January','February','March','April','May','June',
+                          'July','August','September','October','November','December'];
+      label.textContent = `${monthNames[calMonth]} ${calYear}`;
+
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;font-family:DM Mono,monospace;font-size:11px;color:var(--text-muted)">Loading…</div>';
+      detail.classList.remove('visible');
+
+      // Fetch logs if not cached
+      if (!logsCache) {
+        try {
+          const snap = await get(logsRef);
+          logsCache = snap.val() || {};
+        } catch (e) {
+          logsCache = {};
+        }
+      }
+
+      // Build daily averages
+      const dailyAvg = {};
+      if (logsCache) {
+        Object.keys(logsCache).forEach(dateKey => {
+          const dayData = logsCache[dateKey];
+          if (!dayData) return;
+          let temps = [];
+          Object.values(dayData).forEach(entry => {
+            if (entry && entry.temp != null) temps.push(parseFloat(entry.temp));
+          });
+          if (temps.length > 0) {
+            dailyAvg[dateKey] = temps.reduce((a,b)=>a+b,0)/temps.length;
+          }
+        });
+      }
+
+      // Build grid
+      const firstDay = new Date(calYear, calMonth, 1).getDay();
+      const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+      const todayDate = new Date();
+      const todayKey = `${todayDate.getFullYear()}-${String(todayDate.getMonth()+1).padStart(2,'0')}-${String(todayDate.getDate()).padStart(2,'0')}`;
+
       grid.innerHTML = '';
 
-      if (!logsCache) {
-        const monthStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
-        try {
-          const snap = await get(ref(db, `logs`));
-          if (snap.exists()) {
-            const all = snap.val();
-            logsCache = {};
-            Object.entries(all).forEach(([date, val]) => {
-              if (date.startsWith(monthStr)) logsCache[date] = val;
-            });
-          } else { logsCache = {}; }
-        } catch(e) { logsCache = {}; }
-      }
-
-      const firstDay = new Date(calYear, calMonth, 1).getDay();
-      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-      const today = new Date();
-
+      // Empty cells
       for (let i = 0; i < firstDay; i++) {
-        const blank = document.createElement('div');
-        blank.className = 'cal-cell empty';
-        grid.appendChild(blank);
+        const empty = document.createElement('div');
+        empty.className = 'cal-cell empty';
+        grid.appendChild(empty);
       }
 
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dateKey = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-        const isToday = (calYear === today.getFullYear() && calMonth === today.getMonth() && day === today.getDate());
-        const dayData = logsCache[dateKey];
+      // Day cells
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateKey = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const avgTemp  = dailyAvg[dateKey] !== undefined ? dailyAvg[dateKey] : null;
 
         const cell = document.createElement('div');
-        cell.className = 'cal-cell' + (isToday ? ' today' : '');
+        cell.className = 'cal-cell' + (avgTemp === null ? ' no-data' : '') + (dateKey === todayKey ? ' today' : '');
+        cell.style.background = tempToColor(avgTemp);
 
-        let avgTemp = null;
-        if (dayData) {
-          const entries = Object.values(dayData);
-          const temps = entries.map(e => parseFloat(e?.temp)).filter(v => !isNaN(v));
-          if (temps.length > 0) {
-            avgTemp = temps.reduce((a,b) => a+b, 0) / temps.length;
-            cell.style.background = tempToColor(avgTemp);
-          } else { cell.classList.add('no-data'); }
-        } else { cell.classList.add('no-data'); }
+        const dateEl = document.createElement('div');
+        dateEl.className = 'cal-date';
+        dateEl.textContent = d;
+        cell.appendChild(dateEl);
 
-        cell.innerHTML = `<span class="cal-date">${day}</span>` +
-          (avgTemp !== null ? `<span class="cal-temp">${avgTemp.toFixed(0)}°</span>` : '');
+        if (avgTemp !== null) {
+          const tempEl = document.createElement('div');
+          tempEl.className = 'cal-temp';
+          tempEl.textContent = avgTemp.toFixed(0) + '°';
+          cell.appendChild(tempEl);
+        }
 
-        cell.addEventListener('click', () => { if (dayData) showCalDetail(dateKey); });
+        cell.addEventListener('click', () => showCalDetail(dateKey, avgTemp));
         grid.appendChild(cell);
       }
     }
 
-    function showCalDetail(dateKey) {
-      const detail  = document.getElementById('cal-detail');
-      const dateEl  = document.getElementById('cal-detail-date');
+    function showCalDetail(dateKey, avgTemp) {
+      const detail = document.getElementById('cal-detail');
+      const dateEl = document.getElementById('cal-detail-date');
       const statsEl = document.getElementById('cal-detail-stats');
 
       const d = new Date(dateKey + 'T00:00:00');
@@ -3217,24 +2445,24 @@
 
       const dayData = logsCache && logsCache[dateKey];
       if (!dayData) {
-        statsEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-family:\'DM Mono\',monospace;font-size:11px;">No data logged for this day.</div>';
+        statsEl.innerHTML = '<div style="padding:20px;font-family:DM Mono,monospace;font-size:11px;color:var(--text-muted);text-align:center">No data logged for this day.</div>';
       } else {
         let temps = [], hums = [];
         Object.values(dayData).forEach(entry => {
           if (entry && entry.temp != null) { temps.push(parseFloat(entry.temp)); hums.push(parseFloat(entry.hum)); }
         });
 
-        const avg = t => (t.reduce((a,b) => a+b, 0) / t.length).toFixed(1);
+        const avg  = t => (t.reduce((a,b)=>a+b,0)/t.length).toFixed(1);
         const stat = (label, value) =>
           `<div class="cal-stat"><div class="cal-stat-label">${label}</div><div class="cal-stat-value">${value}</div></div>`;
 
         statsEl.innerHTML = [
-          stat('Avg Temp',     avg(temps) + '°C'),
-          stat('Max Temp',     Math.max(...temps).toFixed(1) + '°C'),
-          stat('Min Temp',     Math.min(...temps).toFixed(1) + '°C'),
+          stat('Avg Temp', avg(temps) + '°C'),
+          stat('Max Temp', Math.max(...temps).toFixed(1) + '°C'),
+          stat('Min Temp', Math.min(...temps).toFixed(1) + '°C'),
           stat('Avg Humidity', avg(hums) + '%'),
           stat('Max Humidity', Math.max(...hums).toFixed(1) + '%'),
-          stat('Data Points',  temps.length)
+          stat('Data Points', temps.length)
         ].join('');
       }
 
@@ -3256,8 +2484,9 @@
     });
 
     /* ─────────────────────────────────────────
-       ENVIRONMENT TAB
+       ENVIRONMENT TAB (NEW WAQI PRO LOGIC)
     ───────────────────────────────────────── */
+
     function getAQIText(aqi) {
       if (aqi <= 50) return "Good";
       if (aqi <= 100) return "Satisfactory";
@@ -3285,13 +2514,20 @@
       return "Hazardous air 🚨 Stay indoors";
     }
 
+    // Hook location access to button
     document.getElementById('env-grant-btn').addEventListener('click', async () => {
-      if (!navigator.geolocation) { alert('Geolocation is not supported by your browser.'); return; }
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.');
+        return;
+      }
+
       document.getElementById('env-permission-banner').classList.add('hidden');
       document.getElementById('env-loading').style.display = 'block';
 
       navigator.geolocation.getCurrentPosition(
-        (pos) => { fetchWeather(pos.coords.latitude, pos.coords.longitude); },
+        (pos) => {
+          fetchWeather(pos.coords.latitude, pos.coords.longitude);
+        },
         (err) => {
           document.getElementById('env-loading').style.display = 'none';
           document.getElementById('env-permission-banner').classList.remove('hidden');
@@ -3300,91 +2536,109 @@
       );
     });
 
+    // Updated fetch logic
     async function fetchWeather(lat, lon) {
       try {
         const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
-        if (!res.ok) throw new Error("API failed");
+        
+        if (!res.ok) {
+          throw new Error("API failed");
+        }
 
         const data = await res.json();
+        console.log("Weather API Data:", data);
+
         const weather = data.weather;
         const aqi = data.aqi;
 
+        // Hide loading and show panel
         document.getElementById('env-loading').style.display = 'none';
         document.getElementById('env-data-panel').classList.add('visible');
 
+        // Location text update
         document.getElementById('env-location-text').textContent =
           `${weather?.name || 'Your Location'}, ${weather?.sys?.country || ''} · ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
 
-        currentOutsideTemp = weather.main.temp;
-
+        // Weather Data Mapping
+        currentOutsideTemp = weather.main.temp; 
+        
         document.getElementById("env-temp-val").innerHTML =
           `${weather.main.temp.toFixed(1)}<span class="env-unit">°C</span>`;
-        document.getElementById("env-condition").innerText = weather.weather?.[0]?.main || '—';
-        document.getElementById("env-feels-like").innerText = `${(weather.main.feels_like || weather.main.temp).toFixed(1)}°C`;
-        document.getElementById("env-hum-val").innerText = `${weather.main.humidity}%`;
-        document.getElementById("env-wind").innerText = `${weather.wind?.speed || '--'} m/s`;
 
+        document.getElementById("env-condition").innerText =
+          weather.weather?.[0]?.main || '—';
+
+        document.getElementById("env-feels-like").innerText =
+          `${(weather.main.feels_like || weather.main.temp).toFixed(1)}°C`;
+
+        document.getElementById("env-hum-val").innerText =
+          `${weather.main.humidity}%`;
+
+        document.getElementById("env-wind").innerText =
+          `${weather.wind?.speed || '--'} m/s`;
+
+        // AQI Data Mapping (WAQI standard)
         const aqiValue = aqi?.data?.aqi || 0;
         const aqiColor = getAQIColor(aqiValue);
+        const aqiText = getAQIText(aqiValue);
+        const aqiAdvice = getHealthAdvice(aqiValue);
+        
+        const pm25 = aqi?.data?.iaqi?.pm25?.v;
+        const pm10 = aqi?.data?.iaqi?.pm10?.v;
 
+        // Update AQI UI Elements
         document.getElementById('env-aqi-val').textContent = aqiValue;
         document.getElementById('env-aqi-val').style.color = aqiColor;
-
+        
+        // Progress bar scaling (0 to 500 scale)
         const aqiPct = Math.min(100, (aqiValue / 500) * 100);
         document.getElementById('env-aqi-bar').style.width = aqiPct + '%';
         document.getElementById('env-aqi-bar').style.background = aqiColor;
 
-        document.getElementById('env-aqi-cat').textContent = getAQIText(aqiValue);
+        document.getElementById('env-aqi-cat').textContent = aqiText;
         document.getElementById('env-aqi-cat').style.color = aqiColor;
-        document.getElementById('env-aqi-advice').textContent = getHealthAdvice(aqiValue);
-
-        const pm25 = aqi?.data?.iaqi?.pm25?.v;
-        const pm10 = aqi?.data?.iaqi?.pm10?.v;
+        
+        // Smart Advice and Particulates
+        document.getElementById('env-aqi-advice').textContent = aqiAdvice;
         document.getElementById('env-pm25').textContent = (pm25 !== undefined ? pm25 : '--') + ' μg/m³';
         document.getElementById('env-pm10').textContent = (pm10 !== undefined ? pm10 : '--') + ' μg/m³';
 
         updateCompareCard();
+
       } catch (err) {
         console.error("Weather fetch error:", err);
+        
+        // Reset loading state
         document.getElementById('env-loading').style.display = 'none';
         document.getElementById('env-permission-banner').classList.remove('hidden');
+
+        // Show global error banner
         document.getElementById("error-banner").classList.add("visible");
-        document.getElementById("error-msg").innerText = "Weather API error — failed to fetch from secure backend";
+        document.getElementById("error-msg").innerText =
+          "Weather API error - failed to fetch from secure backend";
       }
     }
 
     function updateCompareCard() {
       if (lastTemp === null || currentOutsideTemp === null) return;
 
-      const elRoom    = document.getElementById('cmp-room');
-      const elOutside = document.getElementById('cmp-outside');
-
-      elRoom.textContent    = lastTemp.toFixed(1) + '°C';
-      elOutside.textContent = currentOutsideTemp.toFixed(1) + '°C';
+      document.getElementById('cmp-room').textContent    = lastTemp.toFixed(1) + '°C';
+      document.getElementById('cmp-outside').textContent = currentOutsideTemp.toFixed(1) + '°C';
 
       const diff = lastTemp - currentOutsideTemp;
-
-      if (lastTemp < currentOutsideTemp) {
-        elRoom.style.color    = "#00e676";
-        elOutside.style.color = "#ff5252";
-      } else if (lastTemp > currentOutsideTemp) {
-        elRoom.style.color    = "#ff5252";
-        elOutside.style.color = "#00e676";
-      } else {
-        elRoom.style.color    = "#ffffff";
-        elOutside.style.color = "#ffffff";
-      }
-
       let insight = '';
-      if (Math.abs(diff) < 0.5)  insight = '🔄 Room and outside temperatures are nearly identical.';
-      else if (diff > 0)          insight = `🔥 Room is warmer than outside by ${diff.toFixed(1)}°C. Consider ventilating.`;
-      else                        insight = `❄️ Room is cooler than outside by ${Math.abs(diff).toFixed(1)}°C. AC may be on.`;
-
+      if (Math.abs(diff) < 0.5) {
+        insight = '🔄 Room and outside temperatures are nearly identical.';
+      } else if (diff > 0) {
+        insight = `🔥 Room is warmer than outside by ${diff.toFixed(1)}°C. Consider ventilating.`;
+      } else {
+        insight = `❄️ Room is cooler than outside by ${Math.abs(diff).toFixed(1)}°C. AC may be on.`;
+      }
       document.getElementById('cmp-insight').textContent = insight;
     }
 
     /* ─────────────────────────────────────────
-       REFRESH BAR
+       REFRESH BAR ANIMATION
     ───────────────────────────────────────── */
     let barW = 0;
     setInterval(() => {
