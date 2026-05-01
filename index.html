@@ -1059,6 +1059,14 @@
       box-shadow: 0 0 20px rgba(34,211,165,0.2);
     }
 
+    .env-api-note {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 12px;
+      letter-spacing: 0.06em;
+    }
+
     .env-data-panel { display: none; }
     .env-data-panel.visible { display: block; }
 
@@ -1095,6 +1103,8 @@
       line-height: 1;
       color: var(--env-base);
     }
+
+    .env-card-weather .env-main-value { color: var(--env-base); }
 
     .env-unit {
       font-family: 'Rajdhani', sans-serif;
@@ -1770,6 +1780,24 @@
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return seconds; 
+      const numSecs = Number(seconds);
+      const hrs = Math.floor(numSecs / 3600);
+      const mins = Math.floor((numSecs % 3600) / 60);
+      
+      let period = "AM";
+      let displayHour = hrs;
+
+      if (hrs >= 12) {
+        period = "PM";
+        if (hrs > 12) displayHour = hrs - 12;
+      }
+      if (displayHour === 0) displayHour = 12;
+
+      return `${displayHour}:${mins.toString().padStart(2, '0')} ${period}`;
+    }
+
     function checkFirstLoad() {
       if (firstLoad) {
         firstLoad = false;
@@ -2005,12 +2033,7 @@
             
             tempReadings.push(t);
             humReadings.push(h);
-            
-            const numSecs = Number(time);
-            const hrs = Math.floor(numSecs / 3600);
-            const mins = Math.floor((numSecs % 3600) / 60);
-            const timeFormatted = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-            timeReadings.push(timeFormatted);
+            timeReadings.push(formatTime(time));
             
             if (t > sessionTMax) sessionTMax = t;
             if (t < sessionTMin) sessionTMin = t;
@@ -2197,13 +2220,7 @@
               if (entry && entry.temp != null && entry.hum != null) {
                 tempData.push(parseFloat(entry.temp));
                 humData.push(parseFloat(entry.hum));
-                
-                const numSecs = Number(timeKey);
-                const hrs = Math.floor(numSecs / 3600);
-                const mins = Math.floor((numSecs % 3600) / 60);
-                const timeFormatted = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-                labelData.push(timeFormatted);
-                
+                labelData.push(formatTime(timeKey));
                 if (parseFloat(entry.temp) >= 35) alertEvents++;
               }
             });
@@ -2242,9 +2259,11 @@
 
         // Downsampling to max ~60 points for the Apple glass UI
         const step = Math.ceil(tempData.length / 60);
-        const filteredTemps = tempData.filter((_, i) => i % step === 0);
-        const filteredHums  = humData.filter((_, i) => i % step === 0);
-        const filteredLabels = labelData.filter((_, i) => i % step === 0);
+        
+        // Ensure the very last element is always included so the graph reaches the current edge
+        const filteredTemps = tempData.filter((_, i) => i % step === 0 || i === tempData.length - 1);
+        const filteredHums  = humData.filter((_, i) => i % step === 0 || i === humData.length - 1);
+        const filteredLabels = labelData.filter((_, i) => i % step === 0 || i === labelData.length - 1);
 
         // Update analytics charts
         chartAnTemp.data.labels   = filteredLabels;
@@ -2539,11 +2558,29 @@
     function updateCompareCard() {
       if (lastTemp === null || currentOutsideTemp === null) return;
 
-      document.getElementById('cmp-room').textContent    = lastTemp.toFixed(1) + '°C';
-      document.getElementById('cmp-outside').textContent = currentOutsideTemp.toFixed(1) + '°C';
+      const elRoom = document.getElementById('cmp-room');
+      const elOutside = document.getElementById('cmp-outside');
+
+      // Update text values
+      elRoom.textContent    = lastTemp.toFixed(1) + '°C';
+      elOutside.textContent = currentOutsideTemp.toFixed(1) + '°C';
 
       const diff = lastTemp - currentOutsideTemp;
       let insight = '';
+
+      // Smart Color Logic: Cooler = Green, Hotter = Red
+      if (lastTemp < currentOutsideTemp) {
+        elRoom.style.color = "#00e676";    // Green
+        elOutside.style.color = "#ff5252"; // Red
+      } else if (lastTemp > currentOutsideTemp) {
+        elRoom.style.color = "#ff5252";    // Red
+        elOutside.style.color = "#00e676"; // Green
+      } else {
+        elRoom.style.color = "#ffffff";    // White (Equal)
+        elOutside.style.color = "#ffffff"; // White (Equal)
+      }
+
+      // Insight text logic
       if (Math.abs(diff) < 0.5) {
         insight = '🔄 Room and outside temperatures are nearly identical.';
       } else if (diff > 0) {
@@ -2551,6 +2588,7 @@
       } else {
         insight = `❄️ Room is cooler than outside by ${Math.abs(diff).toFixed(1)}°C. AC may be on.`;
       }
+      
       document.getElementById('cmp-insight').textContent = insight;
     }
 
